@@ -30,8 +30,8 @@ jobs:
 
       - name: Build
         run: mkdir dist
-          && deno compile --unstable-net --no-check --allow-all --target x86_64-apple-darwin --output apw-x86_64-apple-darwin /src/cli.ts
-          && deno compile --unstable-net --no-check --allow-all --target aarch64-apple-darwin --output apw-aarch64-apple-darwin /src/cli.ts
+          && deno compile --unstable-net --no-check --allow-all --target x86_64-apple-darwin --output apw-x86_64-apple-darwin src/cli.ts
+          && deno compile --unstable-net --no-check --allow-all --target aarch64-apple-darwin --output apw-aarch64-apple-darwin src/cli.ts
 
       - name: Release
         uses: softprops/action-gh-release@v2
