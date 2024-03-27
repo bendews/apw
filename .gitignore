@@ -1,0 +1,24 @@
+# Deno
+.cache
+deps
+deno-test-results.xml
+
+# TypeScript
+*.tsbuildinfo
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Editor/IDE
+.vscode
+.idea
+*.sublime-project
+*.sublime-workspace
+
+# Build output
+dist
+
+# Other
+.psd
