@@ -1,9 +1,12 @@
 import { Buffer } from "node:buffer";
-import { Action, Command, MSGTypes, SecretSessionVersion } from "./enums.ts";
+import { Action, Command, MSGTypes, SecretSessionVersion } from "./const.ts";
 import { SRPSession } from "./srp.ts";
 import { readBigInt, toBase64, toBuffer } from "./utils.ts";
 import { type Message, type SMSG } from "./types.ts";
 import dgram from "node:dgram";
+import { readConfig } from "./utils.ts";
+import { APWError } from "./const.ts";
+import { Status } from "./const.ts";
 
 const BROWSER_NAME = "Arc";
 const VERSION = "1.0";
@@ -152,23 +155,33 @@ export const APWMessages = {
 
 export class ApplePasswordManager {
   public session: SRPSession;
+  public remotePort: number | undefined;
   private challengeTimestamp = 0;
 
   public async sendMessage(messageContent: Message) {
     const listener = dgram.createSocket("udp4");
     listener.bind();
     const content = new TextEncoder().encode(JSON.stringify(messageContent));
-    listener.send(content, 10000, "127.0.0.1");
+    listener.send(content, this.remotePort, "127.0.0.1");
     const data = await new Promise<Uint8Array>((resolve) => {
       listener.once("message", resolve);
     });
     const response = JSON.parse(new TextDecoder().decode(data));
+    if ("error" in response) {
+      throw new Error(response.error);
+    }
     listener.close();
     return response;
   }
 
   constructor() {
-    this.session = SRPSession.new(true);
+    try {
+      const { username, sharedKey, port } = readConfig();
+      this.remotePort = port;
+      this.session = SRPSession.newFrom(username, sharedKey, true);
+    } catch (_) {
+      this.session = SRPSession.new(true);
+    }
   }
 
   async decryptPayload(payload: SMSG) {
@@ -189,15 +202,14 @@ export class ApplePasswordManager {
         throw new Error("Invalid server response: missing payload");
       }
     } else {
-      throw new Error("No session exists. Ensure client is authenticated.");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "No session exists. Ensure client is authenticated.",
+      );
     }
   }
 
   async requestChallenge() {
-    if (this.session === undefined) {
-      throw new Error("Invalid session state: not initialized");
-    }
-
     // Allow to reopen the popup on Windows less than 5s after requesting a challenge
     const challengeTimestamp = Date.now();
     if (this.challengeTimestamp >= challengeTimestamp - 5 * 1000) return;
@@ -214,11 +226,17 @@ export class ApplePasswordManager {
     try {
       pake = JSON.parse(Buffer.from(payload.PAKE, "base64").toString("utf8"));
     } catch (_) {
-      throw new Error("Invalid server hello: missing payload");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server hello: missing payload",
+      );
     }
 
     if (pake.TID !== this.session.username) {
-      throw new Error("Invalid server hello: destined to another session");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server hello: destined to another session",
+      );
     }
 
     switch (pake.ErrCode) {
@@ -226,20 +244,32 @@ export class ApplePasswordManager {
         break;
 
       default:
-        throw new Error(`Invalid server hello: error code ${pake.ErrCode}`);
+        throw new APWError(
+          Status.SERVER_ERROR,
+          `Invalid server hello: error code ${pake.ErrCode}`,
+        );
     }
 
     // macOS sends this as a number, but iCloud for Windows as a string
     if (pake.MSG.toString() !== MSGTypes.SERVER_KEY_EXCHANGE.toString()) {
-      throw new Error("Invalid server hello: unexpected message");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server hello: unexpected message",
+      );
     }
 
     if (pake.PROTO !== SecretSessionVersion.SRP_WITH_RFC_VERIFICATION) {
-      throw new Error("Invalid server hello: unsupported protocol");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server hello: unsupported protocol",
+      );
     }
 
     if ("VER" in pake && pake.VER !== VERSION) {
-      throw new Error("Invalid server hello: unsupported version");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server hello: unsupported version",
+      );
     }
 
     const serverPublicKey = readBigInt(this.session.deserialize(pake.B));
@@ -249,9 +279,6 @@ export class ApplePasswordManager {
   }
 
   async verifyChallenge(password: string) {
-    if (this.session === undefined) {
-      throw new Error("Invalid session state: not initialized");
-    }
     await this.session.setSharedKey(password);
 
     const m = await this.session.computeM();
@@ -262,17 +289,24 @@ export class ApplePasswordManager {
     try {
       pake = JSON.parse(Buffer.from(payload.PAKE, "base64").toString("utf8"));
     } catch (_) {
-      throw new Error("Invalid server verification: missing payload");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server verification: missing payload",
+      );
     }
     if (pake.TID !== this.session.username) {
-      throw new Error(
+      throw new APWError(
+        Status.SERVER_ERROR,
         "Invalid server verification: destined to another session",
       );
     }
 
     // macOS sends this as a number, but iCloud for Windows as a string
     if (pake.MSG.toString() !== MSGTypes.SERVER_VERIFICATION.toString()) {
-      throw new Error("Invalid server verification: unexpected message");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server verification: unexpected message",
+      );
     }
 
     switch (pake.ErrCode) {
@@ -283,22 +317,22 @@ export class ApplePasswordManager {
         throw new Error("Incorrect challenge PIN");
 
       default:
-        throw new Error(
+        throw new APWError(
+          Status.SERVER_ERROR,
           `Invalid server verification: error code ${pake.ErrCode}`,
         );
     }
 
     const hmac = await this.session.computeHMAC(m);
     if (readBigInt(this.session.deserialize(pake.HAMK)) !== readBigInt(hmac)) {
-      throw new Error("Invalid server verification: HAMK mismatch");
+      throw new APWError(
+        Status.SERVER_ERROR,
+        "Invalid server verification: HAMK mismatch",
+      );
     }
   }
 
   async getLoginNamesForURL(url: string) {
-    this.session.loadSavedKeys();
-    if (this.session === undefined) {
-      throw new Error("Invalid session state: not initialized");
-    }
     const msg = await APWMessages.getLoginNamesForURL(this.session, url);
     const { payload } = await this.sendMessage(msg);
     const response = await this.decryptPayload(payload);
@@ -306,10 +340,6 @@ export class ApplePasswordManager {
   }
 
   async getPasswordForURL(url: string, loginName?: string) {
-    this.session.loadSavedKeys();
-    if (this.session === undefined) {
-      throw new Error("Invalid session state: not initialized");
-    }
     const msg = await APWMessages.getPasswordForURL(
       this.session,
       url,
@@ -321,10 +351,6 @@ export class ApplePasswordManager {
   }
 
   async getOTPForURL(url: string) {
-    this.session.loadSavedKeys();
-    if (this.session === undefined) {
-      throw new Error("Invalid session state: not initialized");
-    }
     const msg = await APWMessages.getOTPForURL(
       this.session,
       `http://${url}`,
@@ -335,10 +361,6 @@ export class ApplePasswordManager {
   }
 
   async listOTPForURL(url: string) {
-    this.session.loadSavedKeys();
-    if (this.session === undefined) {
-      throw new Error("Invalid session state: not initialized");
-    }
     const msg = await APWMessages.listOTPForURL(
       this.session,
       `http://${url}`,

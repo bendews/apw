@@ -1,3 +1,13 @@
+export const DATA_PATH = `${Deno.env.get("HOME")}/.apw`;
+
+export class APWError extends Error {
+  code: Status;
+  constructor(public status: Status, message?: string) {
+    super(message || StatusMap[status]);
+    this.code = status;
+  }
+}
+
 export enum Command {
   END = 0,
   UNUSED = 1,
@@ -42,7 +52,7 @@ export enum Action {
   GHOST_SEARCH = 5,
 }
 
-export enum QueryStatus {
+export enum Status {
   SUCCESS = 0,
   GENERIC_ERROR = 1,
   INVALID_PARAM = 2,
@@ -53,4 +63,19 @@ export enum QueryStatus {
   DUPLICATE_ITEM = 7,
   UNKNOWN_ACTION = 8,
   INVALID_SESSION = 9,
+  SERVER_ERROR = 100,
 }
+
+export const StatusMap = {
+  [Status.SUCCESS]: "Operation successful",
+  [Status.GENERIC_ERROR]: "A generic error occurred",
+  [Status.INVALID_PARAM]: "Invalid parameter provided",
+  [Status.NO_RESULTS]: "No results found",
+  [Status.FAILED_TO_DELETE]: "Failed to delete item",
+  [Status.FAILED_TO_UPDATE]: "Failed to update item",
+  [Status.INVALID_MESSAGE_FORMAT]: "Invalid message format",
+  [Status.DUPLICATE_ITEM]: "Duplicate item found",
+  [Status.UNKNOWN_ACTION]: "Unknown action requested",
+  [Status.INVALID_SESSION]: "Invalid session",
+  [Status.SERVER_ERROR]: "Server error",
+};
