@@ -1,5 +1,7 @@
 import { Buffer } from "node:buffer";
-import { QueryStatus } from "./enums.ts";
+import fs from "node:fs";
+import { DATA_PATH } from "./const.ts";
+import { APWConfig } from "./types.ts";
 
 export const toBuffer = (data: any): Buffer => {
   if (Buffer.isBuffer(data)) return data;
@@ -69,39 +71,51 @@ export function randomBytes(count: number) {
   return Buffer.from(array);
 }
 
-export function throwQueryStatusError(status: QueryStatus): never {
-  switch (status) {
-    case QueryStatus.SUCCESS:
-      throw new Error("Query success");
-
-    case QueryStatus.GENERIC_ERROR:
-      throw new Error("Generic query error");
-
-    case QueryStatus.INVALID_PARAM:
-      throw new Error("Invalid query param");
-
-    case QueryStatus.NO_RESULTS:
-      throw new Error("No query results");
-
-    case QueryStatus.FAILED_TO_DELETE:
-      throw new Error("Query failed to delete");
-
-    case QueryStatus.FAILED_TO_UPDATE:
-      throw new Error("Query failed to update");
-
-    case QueryStatus.INVALID_MESSAGE_FORMAT:
-      throw new Error("Invalid query message format");
-
-    case QueryStatus.DUPLICATE_ITEM:
-      throw new Error("Duplicate item in query");
-
-    case QueryStatus.UNKNOWN_ACTION:
-      throw new Error("Unknown query action");
-
-    case QueryStatus.INVALID_SESSION:
-      throw new Error("Invalid session for query");
-
-    default:
-      throw new Error(`Querry error: status code ${status}`);
+export const clearConfig = () => {
+  try {
+    fs.unlinkSync(`${DATA_PATH}/config.json`);
+  } catch (_) {
+    return;
   }
-}
+};
+
+export const writeConfig = (
+  { username, sharedKey, port }: {
+    username?: string;
+    sharedKey?: bigint;
+    port?: number;
+  },
+) => {
+  if (!fs.existsSync(DATA_PATH)) {
+    fs.mkdirSync(DATA_PATH, { recursive: true });
+  }
+  const existingConfig = fs.existsSync(`${DATA_PATH}/config.json`)
+    ? JSON.parse(fs.readFileSync(`${DATA_PATH}/config.json`).toString())
+    : {};
+  const updatedConfig: APWConfig = {
+    ...existingConfig,
+    username: username || existingConfig.username,
+    sharedKey: sharedKey ? toBase64(sharedKey) : existingConfig.sharedKey,
+    port: port || existingConfig.port || 10000,
+  };
+  fs.writeFileSync(
+    `${DATA_PATH}/config.json`,
+    JSON.stringify(updatedConfig),
+  );
+};
+
+export const readConfig = () => {
+  try {
+    const content = fs.readFileSync(`${DATA_PATH}/config.json`).toString();
+    const config: APWConfig = JSON.parse(content);
+    return {
+      sharedKey: readBigInt(Buffer.from(config.sharedKey, "base64")),
+      username: config.username,
+      port: config.port
+    };
+  } catch (_) {
+    throw new Error(
+      "No existing keys. Please login first.",
+    );
+  }
+};

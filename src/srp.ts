@@ -10,8 +10,10 @@ import {
   toBase64,
   toBuffer,
 } from "./utils.ts";
-
-const fp = `${Deno.env.get("HOME")}/.apw`;
+import { DATA_PATH } from "./const.ts";
+import { writeConfig } from "./utils.ts";
+import { APWError } from "./const.ts";
+import { Status } from "./const.ts";
 
 // From https://www.rfc-editor.org/rfc/rfc5054#appendix-A
 const GROUP_PRIME = BigInt(
@@ -57,12 +59,20 @@ export class SRPSession {
     this.username = this.serialize(username);
   }
 
+  static newFrom(
+    username: string,
+    sharedKey: bigint,
+    shouldUseBase64?: boolean,
+  ) {
+    const session = this.new(shouldUseBase64);
+    session.username = username;
+    session.sharedKey = sharedKey;
+    return session;
+  }
+
   static new(shouldUseBase64?: boolean) {
     const username = randomBytes(16);
-
-    // TODO: Use crypto.subtle.generateKey
     const clientPrivateKey = readBigInt(randomBytes(32));
-
     return new SRPSession(username, clientPrivateKey, shouldUseBase64);
   }
 
@@ -92,29 +102,18 @@ export class SRPSession {
     this.salt = salt;
   }
 
-  loadSavedKeys() {
-    try {
-      const sharedkey = fs.readFileSync(`${fp}/sharedkey`, {
-        encoding: "utf-8",
-      });
-      const username = fs.readFileSync(`${fp}/username`, {
-        encoding: "base64",
-      });
-      this.sharedKey = readBigInt(Buffer.from(sharedkey, "base64"));
-      this.username = Buffer.from(username, "base64").toString("utf-8");
-    } catch (_) {
-      throw new Error(
-        "Invalid session state: missing shared key. Please login first.",
-      );
-    }
-  }
-
   async setSharedKey(password: string) {
     if (this.serverPublicKey === undefined) {
-      throw new Error("Invalid session state: missing server public key");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing server public key",
+      );
     }
     if (this.salt === undefined) {
-      throw new Error("Invalid session state: missing salt");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing salt",
+      );
     }
 
     const [publicKeysHash, multiplier, saltedPassword] = (
@@ -151,31 +150,31 @@ export class SRPSession {
     );
 
     this.sharedKey = readBigInt(await sha256(premasterSecret));
-
-    if (!fs.existsSync(fp)) {
-      fs.mkdirSync(fp, { recursive: true });
-    }
-    fs.writeFileSync(
-      `${fp}/sharedkey`,
-      toBase64(this.sharedKey),
-    );
-    fs.writeFileSync(
-      `${fp}/username`,
-      this.username.toString(),
-      {},
-    );
+    writeConfig({
+      username: this.username.toString(),
+      sharedKey: this.sharedKey,
+    });
     return this.sharedKey;
   }
 
   async computeM() {
     if (this.serverPublicKey === undefined) {
-      throw new Error("Invalid session state: missing server public key");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing server public key",
+      );
     }
     if (this.salt === undefined) {
-      throw new Error("Invalid session state: missing salt");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing salt",
+      );
     }
     if (this.sharedKey === undefined) {
-      throw new Error("Invalid session state: missing shared key");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing shared key",
+      );
     }
 
     const [N, g, I] = await Promise.all([
@@ -198,7 +197,10 @@ export class SRPSession {
 
   async computeHMAC(data: Buffer) {
     if (this.sharedKey === undefined) {
-      throw new Error("Invalid session state: missing shared key");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing shared key",
+      );
     }
 
     return await sha256(
@@ -224,7 +226,10 @@ export class SRPSession {
   async encrypt(data: object) {
     const encryptionKey = await this.getEncryptionKey();
     if (encryptionKey === undefined) {
-      throw new Error("Invalid session state: missing encryption key");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing encryption key",
+      );
     }
 
     const initializationVector = randomBytes(16);
@@ -246,7 +251,10 @@ export class SRPSession {
   async decrypt(data: Buffer) {
     const encryptionKey = await this.getEncryptionKey();
     if (encryptionKey === undefined) {
-      throw new Error("Invalid session state: missing encryption key");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "Invalid session state: missing encryption key",
+      );
     }
 
     const initializationVector = data.subarray(0, 16);

@@ -12,8 +12,13 @@ import {
   type RenamedPasswordEntry,
   type TOTPEntry,
 } from "./types.ts";
+import { Status } from "./const.ts";
+import { APWError } from "./const.ts";
 
 const PrintEntries = (payload: Payload) => {
+  if (payload.STATUS !== Status.SUCCESS) {
+    throw new APWError(payload.STATUS);
+  }
   const entries = payload.Entries.map((entry) => {
     if ("USR" in entry) {
       return {
@@ -102,7 +107,7 @@ const pw = new Command()
 
 const daemon = new Command()
   .description("Start the daemon.")
-  .option("-p, --port <port:number>", "Port to listen on.", { default: 10000 })
+  .option("-p, --port <port:number>", "Port to listen on.", { default: 0 })
   .action(Daemon);
 
 const auth = new Command()
@@ -149,13 +154,21 @@ const auth = new Command()
     console.log(JSON.stringify({ status: "success" }));
   });
 
-await new Command()
-  .name("apw-cli")
-  .version("0.1.0")
-  .description("🔑 a CLI for Apple Passwords 🔒")
-  .command("auth", auth)
-  .command("pw", pw)
-  .command("otp", otp)
-  .command("start", daemon)
-  .parse(Deno.args)
-  .finally(() => Deno.exit());
+try {
+  await new Command()
+    .name("apw-cli")
+    .version("0.1.0")
+    .description("🔑 a CLI for Apple Passwords 🔒")
+    .command("auth", auth)
+    .command("pw", pw)
+    .command("otp", otp)
+    .command("start", daemon)
+    .parse(Deno.args);
+} catch (error) {
+  if (error instanceof APWError) {
+    console.log(JSON.stringify({ error: error.message, status: error.code }));
+  } else {
+    console.log(JSON.stringify({ error: error.message }));
+  }
+  Deno.exit(1);
+}

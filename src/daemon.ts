@@ -1,35 +1,46 @@
 import { type ManifestConfig } from "./types.ts";
 import dgram from "node:dgram";
+import { existsSync } from "node:fs";
 import { Buffer } from "node:buffer";
+import { clearConfig, writeConfig } from "./utils.ts";
 
 export interface UDPSocket {
   data: Buffer;
   rinfo: dgram.RemoteInfo;
 }
 
-const readManifest = (path: string): ManifestConfig => {
+const readManifest = (): ManifestConfig => {
+  const path = [
+    "/Library/Application Support/Mozilla/NativeMessagingHosts/com.apple.passwordmanager.json",
+    "/Library/Google/Chrome/NativeMessagingHosts/com.apple.passwordmanager.json",
+  ].find(existsSync);
+  if (!path) {
+    throw new Error(
+      "APW Helper manifest not found. You must be running macOS 14 or above.",
+    );
+  }
   const data = Deno.readFileSync(path);
   return JSON.parse(new TextDecoder("utf-8").decode(data));
 };
 
 export async function Daemon({ port }: { port: number }) {
-  const config = readManifest(
-    "/Library/Google/Chrome/NativeMessagingHosts/com.apple.passwordmanager.json",
-  );
+  const config = readManifest();
   const cmd = new Deno.Command(config.path, {
     args: ["."],
     stdin: "piped",
     stdout: "piped",
   });
   const process = cmd.spawn();
-  console.log("APW helper found & launched.");
+  console.info("APW helper found & launched.");
 
   const listener = dgram.createSocket("udp4");
-  listener.bind(port);
-  console.log(`APW Helper Listening on port ${port}.`);
+  listener.bind(10000);
+  writeConfig({ port: 10000 });
+  console.info(`APW Helper Listening on port 10000.`);
 
   const writer = process.stdin.getWriter();
-  const reader = process.stdout.getReader();
+
+  clearConfig();
 
   while (true) {
     const { data, rinfo } = await new Promise<UDPSocket>((resolve) => {
@@ -43,13 +54,13 @@ export async function Daemon({ port }: { port: number }) {
 
     const buffer: Uint8Array[] = [];
     const timeout = new Promise<null>((resolve) =>
-      setTimeout(resolve, 5000, null)
+      setTimeout(resolve, 30000, null)
     );
-
+    const reader = process.stdout.getReader();
     while (true) {
       const result = await Promise.race([reader.read(), timeout]);
       if (result === null) {
-        console.log("Command output wait timed out.");
+        console.error("Command output wait timed out.");
         listener.send('{"error": "timeout"}', rinfo.port, rinfo.address);
         break;
       }
@@ -64,5 +75,6 @@ export async function Daemon({ port }: { port: number }) {
         console.trace("Failed to parse JSON. Continuing to read stdout.");
       }
     }
+    reader.releaseLock();
   }
 }

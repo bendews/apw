@@ -1,3 +1,5 @@
+import { Status } from "./const.ts";
+
 export interface RenamedPasswordEntry {
   username: string;
   domain: string;
@@ -18,7 +20,7 @@ export interface TOTPEntry {
 }
 
 export interface Payload {
-  STATUS: number;
+  STATUS: Status;
   Entries: PasswordEntry[] | TOTPEntry[];
 }
 
@@ -73,4 +75,10 @@ export interface ManifestConfig {
   path: string;
   type: string;
   allowedOrigins: string[];
+}
+
+export interface APWConfig {
+  port?: number;
+  sharedKey: string;
+  username: string;
 }
