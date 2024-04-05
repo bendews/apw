@@ -1,5 +1,3 @@
-<a name="readme-top"></a>
-
 <div align="center">
   <a href="https://github.com/bendews/apw">
     <img src="icon.png" alt="Logo" width="80" height="80">
@@ -28,26 +26,6 @@
 
 </div>
 
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
-
 <!-- ABOUT THE PROJECT -->
 
 ## About The Project
@@ -59,8 +37,6 @@ personal convenience.
 
 It utilises a built in helper tool in macOS 14 and above to facilitate this
 functionality.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Getting Started
 
@@ -74,13 +50,24 @@ Installation is via Homebrew:
 brew install apw
 ```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+## Integrations
+
+The following integrations have been completed:
+
+- Raycast (extension link) to provide quick access to passwords and OTP tokens.
+  Will automatically retrieve the keychain entry for the currently active
+  webpage.
+
+The following are some future integration ideas:
+
+- SSH Agent to allow storing and using SSH keys/passwords via iCloud
+- Menubar application to provide a standalone interface
 
 ## Usage
 
 Enable the daemon to run on startup:
 
-`brew enable apw`
+`brew service enable apw`
 
 Authenticate the daemon interactively:
 
@@ -110,8 +97,6 @@ Commands:
   start  - Start the daemon.
 ```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- CONTRIBUTING -->
 
 ## Contributing
@@ -130,13 +115,9 @@ create a pull request. You can also simply open an issue with the tag
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## License
 
 Distributed under the GPL V3.0 License. See `LICENSE` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Contact
 
@@ -144,17 +125,12 @@ Ben Dews - [#](https://bendews.com)
 
 Project Link: [https://github.com/bendews/apw](https://github.com/bendews/apw)
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- ACKNOWLEDGMENTS -->
 
 ## Acknowledgments
 
 - [au2001 - iCloud Passwords for Firefox](https://github.com/au2001/icloud-passwords-firefox) -
-  their SRP implementation was _so_ much better than mine it's embarassing. It
-  is now based on their far superior implementation.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+  their SRP implementation was _so_ much better than mine.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->

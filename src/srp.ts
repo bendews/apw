@@ -1,5 +1,4 @@
-import { Buffer } from "node:buffer";
-import fs from "node:fs";
+import { Buffer } from "./deps.ts";
 import {
   mod,
   pad,
@@ -7,13 +6,11 @@ import {
   randomBytes,
   readBigInt,
   sha256,
-  toBase64,
   toBuffer,
+  writeConfig,
 } from "./utils.ts";
-import { DATA_PATH } from "./const.ts";
-import { writeConfig } from "./utils.ts";
-import { APWError } from "./const.ts";
-import { Status } from "./const.ts";
+import { APWError, Status } from "./const.ts";
+import { SRPValues } from "./types.ts";
 
 // From https://www.rfc-editor.org/rfc/rfc5054#appendix-A
 const GROUP_PRIME = BigInt(
@@ -41,12 +38,12 @@ const GROUP_GENERATOR = 5n; // g
 
 // See https://www.rfc-editor.org/rfc/rfc2945
 export class SRPSession {
-  public shouldUseBase64: boolean;
+  private shouldUseBase64: boolean;
   public username: string; // I
-  public clientPrivateKey: bigint; // a
-  public serverPublicKey?: bigint; // B
-  public salt?: bigint; // s
-  public sharedKey?: bigint; // x
+  private clientPrivateKey: bigint; // a
+  private serverPublicKey?: bigint; // B
+  private salt?: bigint; // s
+  private sharedKey?: bigint; // x
 
   private constructor(
     username: Buffer,
@@ -59,15 +56,30 @@ export class SRPSession {
     this.username = this.serialize(username);
   }
 
-  static newFrom(
-    username: string,
-    sharedKey: bigint,
-    shouldUseBase64?: boolean,
-  ) {
-    const session = this.new(shouldUseBase64);
-    session.username = username;
-    session.sharedKey = sharedKey;
-    return session;
+  updateWithValues(args: SRPValues) {
+    if (args.username) this.username = args.username;
+    if (args.sharedKey) this.sharedKey = args.sharedKey;
+    if (args.clientPrivateKey) this.clientPrivateKey = args.clientPrivateKey;
+    if (args.salt) this.salt = args.salt;
+    if (args.serverPublicKey) this.serverPublicKey = args.serverPublicKey;
+  }
+
+  returnValues(
+    args: {
+      username?: boolean;
+      sharedKey?: boolean;
+      clientPrivateKey?: boolean;
+      salt?: boolean;
+      serverPublicKey?: boolean;
+    },
+  ): SRPValues {
+    const ret: SRPValues = {};
+    if (args.username) ret.username = this.username;
+    if (args.sharedKey) ret.sharedKey = this.sharedKey;
+    if (args.clientPrivateKey) ret.clientPrivateKey = this.clientPrivateKey;
+    if (args.salt) ret.salt = this.salt;
+    if (args.serverPublicKey) ret.serverPublicKey = this.serverPublicKey;
+    return ret;
   }
 
   static new(shouldUseBase64?: boolean) {
@@ -150,7 +162,7 @@ export class SRPSession {
     );
 
     this.sharedKey = readBigInt(await sha256(premasterSecret));
-    writeConfig({
+    await writeConfig({
       username: this.username.toString(),
       sharedKey: this.sharedKey,
     });

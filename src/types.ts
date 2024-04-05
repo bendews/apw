@@ -82,3 +82,11 @@ export interface APWConfig {
   sharedKey: string;
   username: string;
 }
+
+export interface SRPValues {
+  username?: string;
+  sharedKey?: bigint;
+  clientPrivateKey?: bigint;
+  salt?: bigint;
+  serverPublicKey?: bigint;
+}

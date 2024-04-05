@@ -1,12 +1,15 @@
-import { Buffer } from "node:buffer";
-import { Action, Command, MSGTypes, SecretSessionVersion } from "./const.ts";
+import { Buffer, createSocket } from "./deps.ts";
+import {
+  Action,
+  APWError,
+  Command,
+  MSGTypes,
+  SecretSessionVersion,
+  Status,
+} from "./const.ts";
 import { SRPSession } from "./srp.ts";
-import { readBigInt, toBase64, toBuffer } from "./utils.ts";
+import { readBigInt, readConfig, toBase64, toBuffer } from "./utils.ts";
 import { type Message, type SMSG } from "./types.ts";
-import dgram from "node:dgram";
-import { readConfig } from "./utils.ts";
-import { APWError } from "./const.ts";
-import { Status } from "./const.ts";
 
 const BROWSER_NAME = "Arc";
 const VERSION = "1.0";
@@ -155,11 +158,11 @@ export const APWMessages = {
 
 export class ApplePasswordManager {
   public session: SRPSession;
-  public remotePort: number | undefined;
+  private remotePort: number | undefined;
   private challengeTimestamp = 0;
 
   public async sendMessage(messageContent: Message) {
-    const listener = dgram.createSocket("udp4");
+    const listener = createSocket("udp4");
     listener.bind();
     const content = new TextEncoder().encode(JSON.stringify(messageContent));
     listener.send(content, this.remotePort, "127.0.0.1");
@@ -175,13 +178,11 @@ export class ApplePasswordManager {
   }
 
   constructor() {
-    try {
-      const { username, sharedKey, port } = readConfig();
-      this.remotePort = port;
-      this.session = SRPSession.newFrom(username, sharedKey, true);
-    } catch (_) {
-      this.session = SRPSession.new(true);
-    }
+    this.session = SRPSession.new(true);
+    const { username, sharedKey, port } = readConfig();
+    this.remotePort = port;
+    if (typeof sharedKey !== "bigint") return;
+    this.session.updateWithValues({ username, sharedKey });
   }
 
   async decryptPayload(payload: SMSG) {
@@ -214,10 +215,6 @@ export class ApplePasswordManager {
     const challengeTimestamp = Date.now();
     if (this.challengeTimestamp >= challengeTimestamp - 5 * 1000) return;
     this.challengeTimestamp = challengeTimestamp;
-
-    delete this.session.serverPublicKey;
-    delete this.session.salt;
-    delete this.session.sharedKey;
     const { payload } = await this.sendMessage(
       APWMessages.requestChallenge(this.session),
     );

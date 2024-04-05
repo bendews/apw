@@ -1,19 +1,13 @@
-import {
-  Input,
-  Select,
-} from "https://deno.land/x/cliffy@v1.0.0-rc.3/prompt/mod.ts";
-import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
+import { Buffer, Command, Input, Select } from "./deps.ts";
 import { Daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
 import { readBigInt, toBase64 } from "./utils.ts";
-import { Buffer } from "node:buffer";
 import {
   type Payload,
   type RenamedPasswordEntry,
   type TOTPEntry,
 } from "./types.ts";
-import { Status } from "./const.ts";
-import { APWError } from "./const.ts";
+import { APWError, Status } from "./const.ts";
 
 const PrintEntries = (payload: Payload) => {
   if (payload.STATUS !== Status.SUCCESS) {
@@ -34,7 +28,7 @@ const PrintEntries = (payload: Payload) => {
       } as TOTPEntry;
     }
   });
-  console.log(JSON.stringify(entries));
+  console.log(JSON.stringify({ results: entries, status: Status.SUCCESS }));
 };
 
 const client = new ApplePasswordManager();
@@ -124,11 +118,17 @@ const auth = new Command()
   .command("request", "Request a challenge from the daemon.")
   .action(async () => {
     await client.requestChallenge();
+    const srpValues = client.session.returnValues({
+      salt: true,
+      serverPublicKey: true,
+      username: true,
+      clientPrivateKey: true,
+    });
     console.log(JSON.stringify({
-      salt: toBase64(client.session.salt),
-      serverKey: toBase64(client.session.serverPublicKey),
-      username: client.session.username,
-      clientKey: toBase64(client.session.clientPrivateKey),
+      salt: toBase64(srpValues.salt),
+      serverKey: toBase64(srpValues.serverPublicKey),
+      username: srpValues.username,
+      clientKey: toBase64(srpValues.clientPrivateKey),
     }));
   })
   .command("response", "Respond to a challenge from the daemon.")
@@ -146,12 +146,14 @@ const auth = new Command()
     const serverPublicKey = readBigInt(Buffer.from(serverKey, "base64"));
     const clientPrivateKey = readBigInt(Buffer.from(clientKey, "base64"));
     const saltResponse = readBigInt(Buffer.from(salt, "base64"));
-    client.session.username = username;
-    client.session.clientPrivateKey = clientPrivateKey;
-    client.session.salt = saltResponse;
-    client.session.serverPublicKey = serverPublicKey;
+    client.session.updateWithValues({
+      username,
+      salt: saltResponse,
+      clientPrivateKey,
+      serverPublicKey,
+    });
     await client.verifyChallenge(pin);
-    console.log(JSON.stringify({ status: "success" }));
+    console.log(JSON.stringify({ status: Status.SUCCESS }));
   });
 
 try {
@@ -165,10 +167,9 @@ try {
     .command("start", daemon)
     .parse(Deno.args);
 } catch (error) {
-  if (error instanceof APWError) {
-    console.log(JSON.stringify({ error: error.message, status: error.code }));
-  } else {
-    console.log(JSON.stringify({ error: error.message }));
-  }
-  Deno.exit(1);
+  const status = error.code ? error.code : Status.GENERIC_ERROR;
+  console.log(
+    JSON.stringify({ error: error.message, status, results: [] }),
+  );
+  Deno.exit(status);
 }
