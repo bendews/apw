@@ -240,7 +240,7 @@ export class SRPSession {
     if (encryptionKey === undefined) {
       throw new APWError(
         Status.INVALID_SESSION,
-        "Invalid session state: missing encryption key",
+        "Missing encryption key. Reauthenticate with `apw auth`.",
       );
     }
 
@@ -265,7 +265,7 @@ export class SRPSession {
     if (encryptionKey === undefined) {
       throw new APWError(
         Status.INVALID_SESSION,
-        "Invalid session state: missing encryption key",
+        "Missing encryption key. Reauthenticate with `apw auth`.",
       );
     }
 
