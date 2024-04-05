@@ -76,6 +76,6 @@ export const StatusMap = {
   [Status.INVALID_MESSAGE_FORMAT]: "Invalid message format",
   [Status.DUPLICATE_ITEM]: "Duplicate item found",
   [Status.UNKNOWN_ACTION]: "Unknown action requested",
-  [Status.INVALID_SESSION]: "Invalid session",
+  [Status.INVALID_SESSION]: "Invalid session, reauthenticate with `apw auth`",
   [Status.SERVER_ERROR]: "Server error",
 };
