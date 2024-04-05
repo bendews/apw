@@ -1,12 +1,10 @@
 import { type ManifestConfig } from "./types.ts";
-import dgram from "node:dgram";
-import { existsSync } from "node:fs";
-import { Buffer } from "node:buffer";
+import { Buffer, createSocket, existsSync, RemoteInfo } from "./deps.ts";
 import { clearConfig, writeConfig } from "./utils.ts";
 
 export interface UDPSocket {
   data: Buffer;
-  rinfo: dgram.RemoteInfo;
+  rinfo: RemoteInfo;
 }
 
 const readManifest = (): ManifestConfig => {
@@ -23,7 +21,8 @@ const readManifest = (): ManifestConfig => {
   return JSON.parse(new TextDecoder("utf-8").decode(data));
 };
 
-export async function Daemon({ port }: { port: number }) {
+export async function Daemon({ port = 0 }: { port: number }) {
+  await clearConfig();
   const config = readManifest();
   const cmd = new Deno.Command(config.path, {
     args: ["."],
@@ -32,16 +31,22 @@ export async function Daemon({ port }: { port: number }) {
   });
   const process = cmd.spawn();
   console.info("APW helper found & launched.");
-
-  const listener = dgram.createSocket("udp4");
-  listener.bind(10000);
-  writeConfig({ port: 10000 });
-  console.info(`APW Helper Listening on port 10000.`);
-
+  const listener = createSocket("udp4");
+  await new Promise((resolve) => {
+    listener.once("listening", resolve);
+    // deno-lint-ignore no-explicit-any
+    listener.on("error", (e: any) => {
+      if (e.code === "EADDRINUSE") {
+        console.error("Port already in use, using a random port");
+        listener.bind(0);
+      }
+    });
+    listener.bind(port);
+  });
+  port = listener.address().port;
+  await writeConfig({ port });
+  console.info(`APW Helper Listening on port ${port}.`);
   const writer = process.stdin.getWriter();
-
-  clearConfig();
-
   while (true) {
     const { data, rinfo } = await new Promise<UDPSocket>((resolve) => {
       listener.once("message", (msg, rinfo) => {
@@ -51,7 +56,6 @@ export async function Daemon({ port }: { port: number }) {
     const length = new Uint8Array(new Uint32Array([data.length]).buffer);
     const arr = new Uint8Array([...length, ...data]);
     await writer.write(arr);
-
     const buffer: Uint8Array[] = [];
     const timeout = new Promise<null>((resolve) =>
       setTimeout(resolve, 30000, null)

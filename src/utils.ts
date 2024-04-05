@@ -1,5 +1,5 @@
-import { Buffer } from "node:buffer";
-import fs from "node:fs";
+// deno-lint-ignore-file no-explicit-any
+import { Buffer } from "./deps.ts";
 import { DATA_PATH } from "./const.ts";
 import { APWConfig } from "./types.ts";
 
@@ -71,34 +71,37 @@ export function randomBytes(count: number) {
   return Buffer.from(array);
 }
 
-export const clearConfig = () => {
+export const clearConfig = async () => {
   try {
-    fs.unlinkSync(`${DATA_PATH}/config.json`);
+    await Deno.remove(`${DATA_PATH}/config.json`);
   } catch (_) {
     return;
   }
 };
 
-export const writeConfig = (
+export const writeConfig = async (
   { username, sharedKey, port }: {
     username?: string;
     sharedKey?: bigint;
     port?: number;
   },
 ) => {
-  if (!fs.existsSync(DATA_PATH)) {
-    fs.mkdirSync(DATA_PATH, { recursive: true });
+  let existingConfig: APWConfig;
+  await Deno.mkdir(DATA_PATH, { recursive: true });
+  try {
+    existingConfig = JSON.parse(
+      await Deno.readTextFile(`${DATA_PATH}/config.json`),
+    );
+  } catch (_) {
+    existingConfig = { sharedKey: "", username: "" };
   }
-  const existingConfig = fs.existsSync(`${DATA_PATH}/config.json`)
-    ? JSON.parse(fs.readFileSync(`${DATA_PATH}/config.json`).toString())
-    : {};
   const updatedConfig: APWConfig = {
     ...existingConfig,
     username: username || existingConfig.username,
     sharedKey: sharedKey ? toBase64(sharedKey) : existingConfig.sharedKey,
     port: port || existingConfig.port || 10000,
   };
-  fs.writeFileSync(
+  await Deno.writeTextFile(
     `${DATA_PATH}/config.json`,
     JSON.stringify(updatedConfig),
   );
@@ -106,12 +109,13 @@ export const writeConfig = (
 
 export const readConfig = () => {
   try {
-    const content = fs.readFileSync(`${DATA_PATH}/config.json`).toString();
+    const content = Deno.readTextFileSync(`${DATA_PATH}/config.json`);
     const config: APWConfig = JSON.parse(content);
     return {
-      sharedKey: readBigInt(Buffer.from(config.sharedKey, "base64")),
+      sharedKey: config.sharedKey &&
+        readBigInt(Buffer.from(config.sharedKey, "base64")),
       username: config.username,
-      port: config.port
+      port: config.port,
     };
   } catch (_) {
     throw new Error(

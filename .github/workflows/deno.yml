@@ -16,13 +16,13 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.41.1
+          deno-version: v1.42.1
 
       - name: Verify formatting
         run: deno fmt --check
 
-      - name: Verify formatting
-        run: deno fmt --check
+      - name: Verify linting
+        run: deno lint
 
       - name: Build
         run: mkdir dist
