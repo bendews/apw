@@ -162,10 +162,6 @@ export class SRPSession {
     );
 
     this.sharedKey = readBigInt(await sha256(premasterSecret));
-    await writeConfig({
-      username: this.username.toString(),
-      sharedKey: this.sharedKey,
-    });
     return this.sharedKey;
   }
 

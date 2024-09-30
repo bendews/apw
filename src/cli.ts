@@ -7,7 +7,7 @@ import {
   type RenamedPasswordEntry,
   type TOTPEntry,
 } from "./types.ts";
-import { APWError, Status } from "./const.ts";
+import { APWError, Status, VERSION } from "./const.ts";
 
 const PrintEntries = (payload: Payload) => {
   if (payload.STATUS !== Status.SUCCESS) {
@@ -159,7 +159,7 @@ const auth = new Command()
 try {
   await new Command()
     .name("apw-cli")
-    .version("0.1.0")
+    .version(`v${VERSION}`)
     .description("🔑 a CLI for Apple Passwords 🔒")
     .command("auth", auth)
     .command("pw", pw)

@@ -10,6 +10,7 @@ import {
 import { SRPSession } from "./srp.ts";
 import { readBigInt, readConfig, toBase64, toBuffer } from "./utils.ts";
 import { type Message, type SMSG } from "./types.ts";
+import { writeConfig } from "./utils.ts";
 
 const BROWSER_NAME = "Arc";
 const VERSION = "1.0";
@@ -179,6 +180,7 @@ export class ApplePasswordManager {
 
   constructor() {
     this.session = SRPSession.new(true);
+    writeConfig({})
     const { username, sharedKey, port } = readConfig();
     this.remotePort = port;
     if (typeof sharedKey !== "bigint") return;
@@ -276,7 +278,7 @@ export class ApplePasswordManager {
   }
 
   async verifyChallenge(password: string) {
-    await this.session.setSharedKey(password);
+    const newKey = await this.session.setSharedKey(password);
 
     const m = await this.session.computeM();
     const msg = await APWMessages.verifyChallenge(this.session, m);
@@ -327,6 +329,11 @@ export class ApplePasswordManager {
         "Invalid server verification: HAMK mismatch",
       );
     }
+    console.log("Challenge verified, updating config");
+    await writeConfig({
+      username: this.session.username.toString(),
+      sharedKey: newKey,
+    });
   }
 
   async getLoginNamesForURL(url: string) {
