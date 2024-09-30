@@ -44,7 +44,8 @@ Ensure homebrew is installed or build `apw` from source.
 
 ### Installation
 
-To install APW and configure it to run automatically at system startup, follow these steps using Homebrew:
+To install APW and configure it to run automatically at system startup, follow
+these steps using Homebrew:
 
 1. Install APW:
    ```
@@ -55,7 +56,6 @@ To install APW and configure it to run automatically at system startup, follow t
    ```
    brew services start apw
    ```
-
 
 ## Integrations
 
@@ -72,7 +72,8 @@ The following are some future integration ideas:
 
 ## Usage
 
-Ensure the daemon is running in the background, either via `brew services start apw` or `apw start`.
+Ensure the daemon is running in the background, either via
+`brew services start apw` or `apw start`.
 
 To authenticate the daemon interactively:
 
