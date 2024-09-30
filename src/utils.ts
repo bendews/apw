@@ -79,7 +79,7 @@ export const clearConfig = async () => {
   }
 };
 
-export const writeConfig = async (
+export const writeConfig = (
   { username, sharedKey, port }: {
     username?: string;
     sharedKey?: bigint;
@@ -87,10 +87,10 @@ export const writeConfig = async (
   },
 ) => {
   let existingConfig: APWConfig;
-  await Deno.mkdir(DATA_PATH, { recursive: true });
+  Deno.mkdirSync(DATA_PATH, { recursive: true });
   try {
     existingConfig = JSON.parse(
-      await Deno.readTextFile(`${DATA_PATH}/config.json`),
+      Deno.readTextFileSync(`${DATA_PATH}/config.json`),
     );
   } catch (_) {
     existingConfig = { sharedKey: "", username: "" };
@@ -101,7 +101,7 @@ export const writeConfig = async (
     sharedKey: sharedKey ? toBase64(sharedKey) : existingConfig.sharedKey,
     port: port || existingConfig.port || 10000,
   };
-  await Deno.writeTextFile(
+  Deno.writeTextFileSync(
     `${DATA_PATH}/config.json`,
     JSON.stringify(updatedConfig),
   );

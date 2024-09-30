@@ -7,7 +7,6 @@ import {
   readBigInt,
   sha256,
   toBuffer,
-  writeConfig,
 } from "./utils.ts";
 import { APWError, Status } from "./const.ts";
 import { SRPValues } from "./types.ts";
@@ -162,10 +161,6 @@ export class SRPSession {
     );
 
     this.sharedKey = readBigInt(await sha256(premasterSecret));
-    await writeConfig({
-      username: this.username.toString(),
-      sharedKey: this.sharedKey,
-    });
     return this.sharedKey;
   }
 
