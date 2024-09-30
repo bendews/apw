@@ -7,7 +7,6 @@ import {
   readBigInt,
   sha256,
   toBuffer,
-  writeConfig,
 } from "./utils.ts";
 import { APWError, Status } from "./const.ts";
 import { SRPValues } from "./types.ts";
