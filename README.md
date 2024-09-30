@@ -101,7 +101,8 @@ Commands:
 
 ## Building
 
-This project uses Deno for development and compilation. Make sure you have Deno installed on your system before proceeding.
+This project uses Deno for development and compilation. Make sure you have Deno
+installed on your system before proceeding.
 
 ### Running the Project
 
@@ -111,7 +112,8 @@ To run the project whilst developing:
 deno run --allow-env --allow-read --allow-write --allow-net src/cli.ts <OPTIONS>
 ```
 
-You can specify the desired Deno permissions flags to limit the functionality of the CLI. To disable the Deno permissions system, use `-A` (allow-all) instead:
+You can specify the desired Deno permissions flags to limit the functionality of
+the CLI. To disable the Deno permissions system, use `-A` (allow-all) instead:
 
 ```
 deno run -A src/cli.ts
@@ -125,7 +127,8 @@ To build a statically compiled binary:
 deno compile --allow-env --allow-read --allow-write --allow-net -o apw src/cli.ts
 ```
 
-You can specify the desired Deno permissions flags to limit the functionality of the CLI. To disable the Deno permissions system, use `-A` (allow-all) instead:
+You can specify the desired Deno permissions flags to limit the functionality of
+the CLI. To disable the Deno permissions system, use `-A` (allow-all) instead:
 
 ```
 deno compile -A -o apw src/cli.ts

@@ -180,7 +180,7 @@ export class ApplePasswordManager {
 
   constructor() {
     this.session = SRPSession.new(true);
-    writeConfig({})
+    writeConfig({});
     const { username, sharedKey, port } = readConfig();
     this.remotePort = port;
     if (typeof sharedKey !== "bigint") return;
