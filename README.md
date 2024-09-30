@@ -40,15 +40,22 @@ functionality.
 
 ## Getting Started
 
-Ensure homebrew is installed or build from source.
+Ensure homebrew is installed or build `apw` from source.
 
 ### Installation
 
-Installation is via Homebrew:
+To install APW and configure it to run automatically at system startup, follow these steps using Homebrew:
 
-```
-brew install apw
-```
+1. Install APW:
+   ```
+   brew install bendews/homebrew-tap/apw
+   ```
+
+2. Enable the APW service to start on boot:
+   ```
+   brew services start apw
+   ```
+
 
 ## Integrations
 
@@ -65,17 +72,19 @@ The following are some future integration ideas:
 
 ## Usage
 
-Enable the daemon to run on startup:
+Ensure the daemon is running in the background, either via `brew services start apw` or `apw start`.
 
-`brew service enable apw`
-
-Authenticate the daemon interactively:
+To authenticate the daemon interactively:
 
 _This is required every time the daemon starts i.e on boot_
 
 `apw auth`
 
-Query for available passwords:
+Query for available passwords (Interactive):
+
+`apw pw`
+
+Query for available passwords (JSON output):
 
 `apw pw list google.com`
 
@@ -109,14 +118,7 @@ installed on your system before proceeding.
 To run the project whilst developing:
 
 ```
-deno run --allow-env --allow-read --allow-write --allow-net src/cli.ts <OPTIONS>
-```
-
-You can specify the desired Deno permissions flags to limit the functionality of
-the CLI. To disable the Deno permissions system, use `-A` (allow-all) instead:
-
-```
-deno run -A src/cli.ts
+deno run --allow-all src/cli.ts <OPTIONS>
 ```
 
 ### Building a release version
@@ -124,14 +126,7 @@ deno run -A src/cli.ts
 To build a statically compiled binary:
 
 ```
-deno compile --allow-env --allow-read --allow-write --allow-net -o apw src/cli.ts
-```
-
-You can specify the desired Deno permissions flags to limit the functionality of
-the CLI. To disable the Deno permissions system, use `-A` (allow-all) instead:
-
-```
-deno compile -A -o apw src/cli.ts
+deno compile --allow-all -o apw src/cli.ts
 ```
 
 ## Contributing
