@@ -38,6 +38,12 @@ personal convenience.
 It utilises a built in helper tool in macOS 14 and above to facilitate this
 functionality.
 
+
+
+https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
+
+
+
 ## Getting Started
 
 Ensure homebrew is installed or build `apw` from source.
