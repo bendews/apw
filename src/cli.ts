@@ -1,4 +1,4 @@
-import { Buffer, Command, Input, Select } from "./deps.ts";
+import { Buffer, Command, Input, Select, ValidationError } from "./deps.ts";
 import { Daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
 import { readBigInt, toBase64 } from "./utils.ts";
@@ -156,20 +156,19 @@ const auth = new Command()
     console.log(JSON.stringify({ status: Status.SUCCESS }));
   });
 
-try {
-  await new Command()
-    .name("apw-cli")
-    .version(`v${VERSION}`)
-    .description("🔑 a CLI for Apple Passwords 🔒")
-    .command("auth", auth)
-    .command("pw", pw)
-    .command("otp", otp)
-    .command("start", daemon)
-    .parse(Deno.args);
-} catch (error) {
-  const status = error.code ? error.code : Status.GENERIC_ERROR;
-  console.log(
-    JSON.stringify({ error: error.message, status, results: [] }),
-  );
-  Deno.exit(status);
-}
+await new Command()
+  .name("apw-cli")
+  .version(`v${VERSION}`)
+  .description("🔑 a CLI for Apple Passwords 🔒")
+  .command("auth", auth)
+  .command("pw", pw)
+  .command("otp", otp)
+  .command("start", daemon)
+  .error((error, cmd) => {
+    if (error instanceof ValidationError) {
+      cmd.showHelp();
+    }
+    console.error(error);
+    Deno.exit(error instanceof ValidationError ? error.exitCode : 1);
+  })
+  .parse(Deno.args);
