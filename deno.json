@@ -2,5 +2,9 @@
   "imports": {
     "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7",
     "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.7"
+  },
+  "tasks": {
+    "build": "deno compile --allow-all -o dist/apw src/cli.ts",
+    "bin": "./dist/apw start"
   }
 }
