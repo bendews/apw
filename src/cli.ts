@@ -166,10 +166,13 @@ try {
     .command("otp", otp)
     .command("start", daemon)
     .parse(Deno.args);
-} catch (error) {
-  const status = error.code ? error.code : Status.GENERIC_ERROR;
-  console.log(
-    JSON.stringify({ error: error.message, status, results: [] }),
-  );
+} catch (error: unknown) {
+  let status = Status.GENERIC_ERROR;
+  let msg = "Unknown Error";
+  if (error instanceof APWError || error instanceof Error) {
+    status = error instanceof APWError ? error.code : status;
+    msg = error.message;
+  }
+  console.error(JSON.stringify({ error: msg, status, results: [] }));
   Deno.exit(status);
 }
