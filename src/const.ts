@@ -1,6 +1,6 @@
 export const DATA_PATH = `${Deno.env.get("HOME")}/.apw`;
 
-export const VERSION = "1.0.1";
+export const VERSION = "1.0.2";
 
 export class APWError extends Error {
   code: Status;

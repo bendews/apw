@@ -104,7 +104,7 @@ Options:
 Commands:
 
   auth   - Authenticate CLI with daemon.         
-  pw     - Interactively list accounts/passwords.
+  pw     - Interactively list or save accounts/passwords.
   otp    - Interactively list accounts/OTPs.     
   start  - Start the daemon.
 ```
