@@ -13,6 +13,9 @@ const PrintEntries = (payload: Payload) => {
   if (payload.STATUS !== Status.SUCCESS) {
     throw new APWError(payload.STATUS);
   }
+  if (!payload.Entries) {
+    throw new APWError(Status.GENERIC_ERROR, "No entries found.");
+  }
   const entries = payload.Entries.map((entry) => {
     if ("USR" in entry) {
       return {
