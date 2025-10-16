@@ -7,6 +7,7 @@ import {
   readBigInt,
   sha256,
   toBuffer,
+  toBufferSource,
 } from "./utils.ts";
 import { APWError, Status } from "./const.ts";
 import { SRPValues } from "./types.ts";
@@ -224,7 +225,7 @@ export class SRPSession {
 
     const key = toBuffer(this.sharedKey).subarray(0, 16);
 
-    return await crypto.subtle.importKey("raw", key, "AES-GCM", true, [
+    return await crypto.subtle.importKey("raw", toBufferSource(key), "AES-GCM", true, [
       "encrypt",
       "decrypt",
     ]);
@@ -248,7 +249,7 @@ export class SRPSession {
             iv: initializationVector,
           },
           encryptionKey,
-          toBuffer(data),
+          toBufferSource(data),
         ),
       ),
       initializationVector,
@@ -269,10 +270,10 @@ export class SRPSession {
       await crypto.subtle.decrypt(
         {
           name: "AES-GCM",
-          iv: initializationVector,
+          iv: toBufferSource(initializationVector),
         },
         encryptionKey,
-        data.subarray(16),
+        toBufferSource(data.subarray(16)),
       ),
     );
   }

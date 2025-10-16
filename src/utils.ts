@@ -31,6 +31,11 @@ export const toBuffer = (data: any): Buffer => {
   }
 };
 
+export const toBufferSource = (data: any) => {
+  const buffer = toBuffer(data);
+  return new Uint8Array(buffer);
+}
+
 export const toBase64 = (data: any) => toBuffer(data).toString("base64");
 
 export const readBigInt = (buffer: Buffer): bigint => {
@@ -38,7 +43,7 @@ export const readBigInt = (buffer: Buffer): bigint => {
 };
 
 export const sha256 = async (data: any) =>
-  Buffer.from(await crypto.subtle.digest("SHA-256", toBuffer(data)));
+  Buffer.from(await crypto.subtle.digest("SHA-256", toBufferSource(data)));
 
 export const pad = (buffer: Buffer, length: number) => {
   const array = Buffer.alloc(length);
