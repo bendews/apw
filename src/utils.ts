@@ -34,7 +34,7 @@ export const toBuffer = (data: any): Buffer => {
 export const toBufferSource = (data: any) => {
   const buffer = toBuffer(data);
   return new Uint8Array(buffer);
-}
+};
 
 export const toBase64 = (data: any) => toBuffer(data).toString("base64");
 

@@ -225,10 +225,16 @@ export class SRPSession {
 
     const key = toBuffer(this.sharedKey).subarray(0, 16);
 
-    return await crypto.subtle.importKey("raw", toBufferSource(key), "AES-GCM", true, [
-      "encrypt",
-      "decrypt",
-    ]);
+    return await crypto.subtle.importKey(
+      "raw",
+      toBufferSource(key),
+      "AES-GCM",
+      true,
+      [
+        "encrypt",
+        "decrypt",
+      ],
+    );
   }
 
   async encrypt(data: object) {

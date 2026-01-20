@@ -1,0 +1,22 @@
+name: Deno fmt and lint check
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.42.1
+
+      - name: Verify formatting
+        run: deno fmt --check
+
+      - name: Verify linting
+        run: deno lint
