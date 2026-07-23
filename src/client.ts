@@ -155,6 +155,38 @@ export const APWMessages = {
       },
     };
   },
+
+  async newAccountForURL(
+    session: SRPSession,
+    url: string,
+    loginName: string,
+    password: string,
+  ): Promise<Message> {
+    const sdata = session.serialize(
+      await session.encrypt({
+        ACT: Action.MAYBE_ADD,
+        URL: String(),
+        USR: String(),
+        PWD: String(),
+        NURL: url,
+        NUSR: loginName,
+        NPWD: password,
+      }),
+    );
+
+    return {
+      cmd: Command.NEW_ACCOUNT_FOR_URL,
+      tabId: 0,
+      frameId: 0,
+      payload: JSON.stringify({
+        QID: "CmdNewAccount4URL",
+        SMSG: {
+          TID: session.username,
+          SDATA: sdata,
+        },
+      }),
+    };
+  },
 };
 
 export class ApplePasswordManager {
@@ -373,4 +405,20 @@ export class ApplePasswordManager {
     const response = await this.decryptPayload(payload);
     return response;
   }
+  async saveAccountForURL(url: string, loginName: string, password: string) {
+    const msg = await APWMessages.newAccountForURL(
+      this.session,
+      url,
+      loginName,
+      password,
+    );
+    const { payload } = await this.sendMessage(msg);
+    const response = await this.decryptPayload(payload);
+
+    if (response.STATUS !== Status.SUCCESS) {
+      throw new APWError(response.STATUS);
+    }
+    console.log("Account saved successfully."); 
+  }
+
 }
