@@ -18,9 +18,8 @@
     <a href="https://github.com/bendews/apw/issues">Request Feature</a>
   </p>
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url] [![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
+[![Contributors][contributors-shield]][contributors-url] [![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url] [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 <br />
 
@@ -30,52 +29,51 @@
 
 ## About The Project
 
-This project introduces a CLI interface designed to access iCloud passwords and
-OTP tokens. The core objective is to provide a secure and straightforward way to
-retrieve iCloud passwords, facilitating integration with other systems or for
-personal convenience.
+This project introduces a CLI interface designed to access iCloud passwords and OTP tokens. The core objective is to
+provide a secure and straightforward way to retrieve iCloud passwords, facilitating integration with other systems or
+for personal convenience.
 
-It utilises a built in helper tool in macOS 14 and above to facilitate this
-functionality.
+It utilises a built in helper tool in macOS 14 and above to facilitate this functionality.
 
 https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
 
 ## Getting Started
 
-Ensure homebrew is installed or build `apw` from source.
+APW requires macOS 14 or later and one of these browsers with the iCloud Passwords extension installed: Ungoogled Chromium, Chrome, Brave, or Edge.
+
+**NOTE**: The selected browser will generally not be usable for general use while `apw` is running. It is recommended to install one as a secondary browser to your main one.
 
 ### Installation
 
-To install APW and configure it to run automatically at system startup, follow
-these steps using Homebrew:
+Install APW with Homebrew:
 
-1. Install APW:
-   ```
-   brew install bendews/homebrew-tap/apw
-   ```
+```
+brew install bendews/homebrew-tap/apw
+```
 
-2. Enable the APW service to start on boot:
-   ```
-   brew services start apw
-   ```
+To enable the APW service to start on boot:
+
+```
+brew services start apw
+```
 
 ## Integrations
 
 The following integrations have been completed:
 
-- Raycast (extension link) to provide quick access to passwords and OTP tokens.
-  Will automatically retrieve the keychain entry for the currently active
-  webpage.
+- Raycast [extension link](https://github.com/bendews/raycast-extensions/tree/ext/apple-passwords/extensions/apple-passwords) to provide quick access to passwords and OTP tokens. Will automatically retrieve entries for the currently active webpage.
 
 The following are some future integration ideas:
 
-- SSH Agent to allow storing and using SSH keys/passwords via iCloud
-- Menubar application to provide a standalone interface
+- SSH Agent to allow storing and using SSH keys/passwords
 
 ## Usage
 
-Ensure the daemon is running in the background, either via
-`brew services start apw` or `apw start`.
+Ensure the daemon is running in the background, either via `brew services start apw` or `apw start`.
+
+Start with a specific browser without the interactive prompt:
+
+`apw start --browser chrome`
 
 To authenticate the daemon interactively:
 
@@ -90,6 +88,14 @@ Query for available passwords (Interactive):
 Query for available passwords (JSON output):
 
 `apw pw list google.com`
+
+Create or update a password (the command prompts for the password):
+
+`apw pw save google.com username`
+
+Retrieve a one-time code:
+
+`apw otp get google.com`
 
 View more commands & help:
 
@@ -113,8 +119,8 @@ Commands:
 
 ## Building
 
-This project uses Deno for development and compilation. Make sure you have Deno
-installed on your system before proceeding.
+This project uses Deno for development and compilation. Make sure you have Deno installed on your system before
+proceeding.
 
 ### Running the Project
 
@@ -134,13 +140,11 @@ deno compile --allow-all -o apw src/cli.ts
 
 ## Contributing
 
-Contributions are what make the open source community such an amazing place to
-learn, inspire, and create. Any contributions you make are **greatly
-appreciated**.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any
+contributions you make are **greatly appreciated**.
 
-If you have a suggestion that would make this better, please fork the repo and
-create a pull request. You can also simply open an issue with the tag
-"enhancement". Don't forget to give the project a star! Thanks again!
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also
+simply open an issue with the tag "enhancement". Don't forget to give the project a star! Thanks again!
 
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -162,8 +166,7 @@ Project Link: [https://github.com/bendews/apw](https://github.com/bendews/apw)
 
 ## Acknowledgments
 
-- [au2001 - iCloud Passwords for Firefox](https://github.com/au2001/icloud-passwords-firefox) -
-  their SRP implementation was _so_ much better than mine.
+- [au2001 - iCloud Passwords for Firefox](https://github.com/au2001/icloud-passwords-firefox)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->

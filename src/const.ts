@@ -1,12 +1,12 @@
 export const DATA_PATH = `${Deno.env.get("HOME")}/.apw`;
-
-export const VERSION = "1.0.1";
+export const VERSION = "1.2.0";
+export const SOCKET_PATH = `${DATA_PATH}/apw.sock`;
+export const EXTENSION_PATH = `${DATA_PATH}/extension`;
+export const BROWSER_PROFILE_PATH = `${DATA_PATH}/browser`;
 
 export class APWError extends Error {
-  code: Status;
   constructor(public status: Status, message?: string) {
     super(message || StatusMap[status]);
-    this.code = status;
   }
 }
 
@@ -68,7 +68,7 @@ export enum Status {
   SERVER_ERROR = 100,
 }
 
-export const StatusMap = {
+const StatusMap = {
   [Status.SUCCESS]: "Operation successful",
   [Status.GENERIC_ERROR]: "A generic error occurred",
   [Status.INVALID_PARAM]: "Invalid parameter provided",
@@ -78,6 +78,6 @@ export const StatusMap = {
   [Status.INVALID_MESSAGE_FORMAT]: "Invalid message format",
   [Status.DUPLICATE_ITEM]: "Duplicate item found",
   [Status.UNKNOWN_ACTION]: "Unknown action requested",
-  [Status.INVALID_SESSION]: "Invalid session, reauthenticate with `apw auth`",
-  [Status.SERVER_ERROR]: "Server error",
+  [Status.INVALID_SESSION]: "APW is not running or not authenticated, run `apw start` then `apw auth`",
+  [Status.SERVER_ERROR]: "Unexpected response from extension",
 };
