@@ -21,7 +21,8 @@ export interface TOTPEntry {
 
 export interface Payload {
   STATUS: Status;
-  Entries: PasswordEntry[] | TOTPEntry[];
+  Entries?: PasswordEntry[] | TOTPEntry[];
+  RequiresUserAuthenticationToFill?: boolean;
 }
 
 export interface Capabilities {

@@ -13,6 +13,9 @@ const PrintEntries = (payload: Payload) => {
   if (payload.STATUS !== Status.SUCCESS) {
     throw new APWError(payload.STATUS);
   }
+  if (!payload.Entries) {
+    throw new APWError(Status.GENERIC_ERROR, "No entries found.");
+  }
   const entries = payload.Entries.map((entry) => {
     if ("USR" in entry) {
       return {
@@ -71,7 +74,7 @@ const pw = new Command()
   .action(async () => {
     const action: string = await Select.prompt({
       message: "Choose an action: ",
-      options: ["list accounts", "get password"],
+      options: ["list accounts", "get password", "save account"],
     });
     const url = await Input.prompt({
       message: "Enter URL: ",
@@ -80,6 +83,17 @@ const pw = new Command()
       PrintEntries(await client.getLoginNamesForURL(url));
     } else if (action === "get password") {
       PrintEntries(await client.getPasswordForURL(url));
+    } else if (action === "save account") {
+      const username = await Input.prompt({
+        message: "Enter username: ",
+      });
+      const password = await Input.prompt({
+        message: "Enter password: ",
+      });
+      if (!url || !username || !password) {
+        throw new Error("Missing required arguments 'url', 'username', or 'password'.");
+      }
+        await client.saveAccountForURL(url, username, password);
     }
   })
   .command("get", "Get a password for a website.")
@@ -97,7 +111,15 @@ const pw = new Command()
       throw new Error("Missing required argument 'url'.");
     }
     PrintEntries(await client.getLoginNamesForURL(url));
-  });
+  })
+  .command("save", "Save account/password for a website.")
+  .arguments("<url:string> <username:string> <password:string>")
+  .action(async (_, url: string, username: string, password: string) => {
+    if (!url || !username || !password) {
+      throw new Error("Missing required arguments 'url', 'username', or 'password'.");
+    }
+    await client.saveAccountForURL(url, username, password);
+});
 
 const daemon = new Command()
   .description("Start the daemon.")
