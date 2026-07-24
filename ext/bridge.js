@@ -21,7 +21,10 @@
         url: message.url,
         payload: JSON.stringify({ QID: message.qid, SMSG }),
       });
-    } catch (error) { pending = null; fail(message.id, SERVER_ERROR, error); }
+    } catch (error) {
+      pending = null;
+      fail(message.id, SERVER_ERROR, error);
+    }
   }
 
   function reply(message) {
@@ -33,14 +36,19 @@
         ? JSON.parse(g_secretSession.parseSMSG(message.payload.SMSG))
         : { STATUS: message.STATUS ?? OK };
       send({ id, data });
-    } catch (error) { fail(id, SERVER_ERROR, error); }
+    } catch (error) {
+      fail(id, SERVER_ERROR, error);
+    }
   }
 
   function connect() {
     ws = new WebSocket(`ws://127.0.0.1:${port}`);
     ws.onopen = () => send({ token });
     ws.onerror = () => ws.close();
-    ws.onclose = () => { pending = null; setTimeout(connect, 3000); };
+    ws.onclose = () => {
+      pending = null;
+      setTimeout(connect, 3000);
+    };
     ws.onmessage = ({ data }) => request(JSON.parse(data));
   }
   if (!g_nativeAppPort) connectToBackgroundNativeAppAndSetUpListeners();

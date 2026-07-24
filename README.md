@@ -39,9 +39,11 @@ https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
 
 ## Getting Started
 
-APW requires macOS 14 or later and one of these browsers with the iCloud Passwords extension installed: Ungoogled Chromium, Chrome, Brave, or Edge.
+APW requires macOS 14 or later and one of these browsers with the iCloud Passwords extension installed: Ungoogled
+Chromium, Chrome, Brave, or Edge.
 
-**NOTE**: The selected browser will generally not be usable for general use while `apw` is running. It is recommended to install one as a secondary browser to your main one.
+**NOTE**: The selected browser will generally not be usable for general use while `apw` is running. It is recommended to
+install one as a secondary browser to your main one.
 
 ### Installation
 
@@ -61,7 +63,8 @@ brew services start apw
 
 The following integrations have been completed:
 
-- Raycast [extension link](https://github.com/bendews/apw-raycast) to provide quick access to passwords and OTP tokens. Will automatically retrieve entries for the currently active webpage.
+- Raycast [extension link](https://github.com/bendews/apw-raycast) to provide quick access to passwords and OTP tokens.
+  Will automatically retrieve entries for the currently active webpage.
 
 The following are some future integration ideas:
 
@@ -138,7 +141,8 @@ To build a statically compiled binary:
 deno task compile
 ```
 
-The tasks scope access to the current user’s home directory at compile time, so Homebrew-built binaries work with the installing user’s environment.
+The tasks scope access to the current user’s home directory at compile time, so Homebrew-built binaries work with the
+installing user’s environment.
 
 ## Contributing
 
