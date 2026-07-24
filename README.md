@@ -61,7 +61,7 @@ brew services start apw
 
 The following integrations have been completed:
 
-- Raycast [extension link](https://github.com/bendews/raycast-extensions/tree/ext/apple-passwords/extensions/apple-passwords) to provide quick access to passwords and OTP tokens. Will automatically retrieve entries for the currently active webpage.
+- Raycast [extension link](https://github.com/bendews/apw-raycast) to provide quick access to passwords and OTP tokens. Will automatically retrieve entries for the currently active webpage.
 
 The following are some future integration ideas:
 
@@ -126,17 +126,19 @@ proceeding.
 
 To run the project whilst developing:
 
-```
-deno run --allow-all src/cli.ts <OPTIONS>
+```shell
+deno task dev <OPTIONS>
 ```
 
 ### Building a release version
 
 To build a statically compiled binary:
 
+```shell
+deno task compile
 ```
-deno compile --allow-all -o apw src/cli.ts
-```
+
+The tasks scope access to the current user’s home directory at compile time, so Homebrew-built binaries work with the installing user’s environment.
 
 ## Contributing
 

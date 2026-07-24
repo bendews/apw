@@ -57,6 +57,16 @@ function remove(path: string): void {
   }
 }
 
+function copyDirectory(source: string, target: string): void {
+  Deno.mkdirSync(target, { recursive: true });
+  for (const entry of Deno.readDirSync(source)) {
+    const from = `${source}/${entry.name}`;
+    const to = `${target}/${entry.name}`;
+    if (entry.isDirectory) copyDirectory(from, to);
+    else if (entry.isFile) Deno.copyFileSync(from, to);
+  }
+}
+
 function extensionSource(): string | undefined {
   for (const { dataPath } of BROWSERS) {
     for (const profile of directories(dataPath)) {
@@ -81,8 +91,7 @@ function buildExtension(config: { port: number; token: string }): void {
   remove(EXTENSION_PATH);
   Deno.mkdirSync(EXTENSION_PATH, { recursive: true });
 
-  const copied = new Deno.Command("cp", { args: ["-R", `${source}/.`, EXTENSION_PATH] }).outputSync().success;
-  if (!copied) throw new APWError(Status.GENERIC_ERROR, "Failed to copy the extension.");
+  copyDirectory(source, EXTENSION_PATH);
 
   const background = `${EXTENSION_PATH}/${BACKGROUND}`;
   const original = Deno.readTextFileSync(background);

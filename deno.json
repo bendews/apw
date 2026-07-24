@@ -1,9 +1,15 @@
 {
   "imports": {
-    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7",
-    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.7"
+    "@cliffy/command": "jsr:@cliffy/command@^1.2.1",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.2.1"
   },
   "fmt": {
     "lineWidth": 120
+  },
+  "tasks": {
+    "dev": "deno run --allow-env=HOME --allow-read=\"$HOME/.apw,$HOME/Library/Application Support,/Applications,/Library/Google/Chrome/NativeMessagingHosts\" --allow-write=\"$HOME/.apw\" --allow-net=\"127.0.0.1,unix:$HOME/.apw/apw.sock\" --allow-run=\"/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge\" src/cli.ts",
+    "compile": "deno compile --allow-env=HOME --allow-read=\"$HOME/.apw,$HOME/Library/Application Support,/Applications,/Library/Google/Chrome/NativeMessagingHosts\" --allow-write=\"$HOME/.apw\" --allow-net=\"127.0.0.1,unix:$HOME/.apw/apw.sock\" --allow-run=\"/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge\" -o apw src/cli.ts",
+    "compile:x86_64": "deno compile --allow-env=HOME --allow-read=\"$HOME/.apw,$HOME/Library/Application Support,/Applications,/Library/Google/Chrome/NativeMessagingHosts\" --allow-write=\"$HOME/.apw\" --allow-net=\"127.0.0.1,unix:$HOME/.apw/apw.sock\" --allow-run=\"/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge\" --target x86_64-apple-darwin -o dist/apw-x86_64-apple-darwin src/cli.ts",
+    "compile:aarch64": "deno compile --allow-env=HOME --allow-read=\"$HOME/.apw,$HOME/Library/Application Support,/Applications,/Library/Google/Chrome/NativeMessagingHosts\" --allow-write=\"$HOME/.apw\" --allow-net=\"127.0.0.1,unix:$HOME/.apw/apw.sock\" --allow-run=\"/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge\" --target aarch64-apple-darwin -o dist/apw-aarch64-apple-darwin src/cli.ts"
   }
 }
