@@ -135,7 +135,10 @@ export class ApplePasswordManager {
       const conn = await Deno.connect({ transport: "unix", path: SOCKET_PATH });
       conn.close();
     } catch {
-      throw new APWError(Status.INVALID_SESSION, "APW is not running or not authorised. Run `apw start` then `apw auth`.");
+      throw new APWError(
+        Status.INVALID_SESSION,
+        "APW is not running or not authorised. Run `apw start` then `apw auth`.",
+      );
     }
   }
 
