@@ -8,6 +8,8 @@
   },
   "tasks": {
     "dev": "deno run --allow-env=HOME --allow-read --allow-write --allow-net --allow-run='/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' src/cli.ts",
-    "compile": "deno compile --allow-env=HOME --allow-read --allow-write --allow-net --allow-run='/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' -o apw src/cli.ts"
+    "compile": "deno compile --allow-env=HOME --allow-read --allow-write --allow-net --allow-run='/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' -o apw src/cli.ts",
+    "compile:x86_64": "deno compile --allow-env=HOME --allow-read --allow-write --allow-net --allow-run='/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' --target x86_64-apple-darwin -o dist/apw-x86_64-apple-darwin src/cli.ts",
+    "compile:aarch64": "deno compile --allow-env=HOME --allow-read --allow-write --allow-net --allow-run='/Applications/Chromium.app/Contents/MacOS/Chromium,/Applications/Google Chrome.app/Contents/MacOS/Google Chrome,/Applications/Brave Browser.app/Contents/MacOS/Brave Browser,/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge' --target aarch64-apple-darwin -o dist/apw-aarch64-apple-darwin src/cli.ts"
   }
 }
