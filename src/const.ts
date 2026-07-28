@@ -3,6 +3,7 @@ export const VERSION = "1.2.0";
 export const SOCKET_PATH = `${DATA_PATH}/apw.sock`;
 export const EXTENSION_PATH = `${DATA_PATH}/extension`;
 export const BROWSER_PROFILE_PATH = `${DATA_PATH}/browser`;
+export const CONFIG_PATH = `${DATA_PATH}/config.json`;
 
 export class APWError extends Error {
   constructor(public status: Status, message?: string) {

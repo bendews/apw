@@ -19,18 +19,23 @@ export type APWResponse =
 
 export interface PasswordEntry {
   USR: string;
-  sites: string[];
   PWD?: string;
+  sites: string[];
+  highLevelDomain?: string;
+  customTitle?: string;
+  CDate?: string;
+  ModDate?: string;
 }
 
 export interface TOTPEntry {
   code?: string;
   username: string;
-  source?: string;
   domain: string;
+  source?: string;
 }
 
 export interface Payload {
   STATUS: Status;
   Entries: Array<PasswordEntry | TOTPEntry>;
+  RequiresUserAuthenticationToFill?: boolean;
 }

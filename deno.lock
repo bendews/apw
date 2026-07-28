@@ -8,6 +8,7 @@
     "jsr:@cliffy/keycode@1.2.1": "1.2.1",
     "jsr:@cliffy/prompt@^1.2.1": "1.2.1",
     "jsr:@cliffy/table@1.2.1": "1.2.1",
+    "jsr:@cliffy/table@^1.2.1": "1.2.1",
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/encoding@^1.0.10": "1.0.11",
     "jsr:@std/fmt@^1.0.10": "1.0.10",
@@ -31,7 +32,7 @@
       "dependencies": [
         "jsr:@cliffy/flags",
         "jsr:@cliffy/internal",
-        "jsr:@cliffy/table",
+        "jsr:@cliffy/table@1.2.1",
         "jsr:@std/fmt",
         "jsr:@std/semver",
         "jsr:@std/text"
@@ -100,7 +101,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@cliffy/command@^1.2.1",
-      "jsr:@cliffy/prompt@^1.2.1"
+      "jsr:@cliffy/prompt@^1.2.1",
+      "jsr:@cliffy/table@^1.2.1"
     ]
   }
 }

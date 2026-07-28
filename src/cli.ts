@@ -1,61 +1,74 @@
-import { Command, Input, Secret, Select } from "./deps.ts";
-import { Daemon } from "./daemon.ts";
+import { Command, Input, Row, Secret, Select, Table } from "./deps.ts";
+import { daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
 import { installedBrowsers } from "./browser.ts";
+import { readConfig, writeConfig } from "./config.ts";
 import { APWError, Status, VERSION } from "./const.ts";
-import type { Payload } from "./types.ts";
+import type { PasswordEntry, Payload } from "./types.ts";
 
 const client = new ApplePasswordManager();
 
-const PrintSuccess = () => console.log(JSON.stringify({ status: Status.SUCCESS }));
+const printSuccess = () => console.log(JSON.stringify({ status: Status.SUCCESS }));
 
-const PrintEntries = (payload: Payload) => {
+function printResult(payload: Payload, table: boolean): void {
   const entries = payload.Entries.map((entry) => {
     if ("USR" in entry) {
       return {
         username: entry.USR,
         domain: entry.sites[0],
-        password: entry.PWD || "Not Included",
+        ...(entry.customTitle && { title: entry.customTitle }),
+        ...(entry.PWD !== "Not Included" && { password: entry.PWD }),
+        ...(entry.sites && { sites: entry.sites }),
+        ...(entry.highLevelDomain && { highLevelDomain: entry.highLevelDomain }),
       };
     } else {
       return {
         username: entry.username,
         domain: entry.domain,
-        code: entry.code || "Not Included",
+        ...(entry.source && { source: entry.source }),
+        ...(entry.code && { code: entry.code }),
       };
     }
   });
-  console.log(JSON.stringify({ results: entries, status: Status.SUCCESS }));
-};
+  if (table) {
+    console.table(entries);
+  } else {
+    console.log(JSON.stringify({ results: entries, status: Status.SUCCESS }));
+  }
+}
 
 const otp = new Command()
   .description("Interactively list accounts/OTPs.")
-  .action(async () => {
+  .globalOption("-t, --table", "Output as a table.")
+  .globalOption("-j, --json", "Output as JSON.")
+  .action(async ({ json }: { json?: boolean }) => {
     const action: string = await Select.prompt({
       message: "Choose an action: ",
       options: ["list OTPs", "get OTPs"],
     });
     const url = await Input.prompt({ message: "Enter URL: " });
     if (action === "list OTPs") {
-      PrintEntries(await client.listOTPForURL(url));
+      printResult(await client.listOTPForURL(url), !json);
     } else if (action === "get OTPs") {
-      PrintEntries(await client.getOTPForURL(url));
+      printResult(await client.getOTPForURL(url), !json);
     }
   })
   .command("get", "Get an OTP for a website.")
   .arguments("<url:string>")
-  .action(async (_, url: string) => {
-    PrintEntries(await client.getOTPForURL(url));
+  .action(async ({ table, json }: { table?: boolean; json?: boolean }, url: string) => {
+    printResult(await client.getOTPForURL(url), !!table && !json);
   })
   .command("list", "List available OTPs for a website.")
   .arguments("<url:string>")
-  .action(async (_, url: string) => {
-    PrintEntries(await client.listOTPForURL(url));
+  .action(async ({ table, json }: { table?: boolean; json?: boolean }, url: string) => {
+    printResult(await client.listOTPForURL(url), !!table && !json);
   });
 
 const pw = new Command()
   .description("Interactively manage accounts/passwords.")
-  .action(async () => {
+  .globalOption("-t, --table", "Output as a table.")
+  .globalOption("-j, --json", "Output as JSON.")
+  .action(async ({ json }: { json?: boolean }) => {
     const action: string = await Select.prompt({
       message: "Choose an action: ",
       options: ["list accounts", "get password", "save account"],
@@ -71,24 +84,38 @@ const pw = new Command()
         minLength: 1,
       });
       await client.saveAccountForURL(url, username, password);
-      PrintSuccess();
+      printSuccess();
       return;
     }
     if (action === "list accounts") {
-      PrintEntries(await client.getLoginNamesForURL(url));
+      printResult(await client.getLoginNamesForURL(url), !json);
     } else if (action === "get password") {
-      PrintEntries(await client.getPasswordForURL(url));
+      const accounts = await client.getLoginNamesForURL(url);
+      if (!accounts.Entries.length) {
+        console.log("No accounts found.");
+        return;
+      }
+      const options = [
+        { name: "All", value: "" },
+        ...accounts.Entries
+          .filter((e): e is PasswordEntry => "USR" in e)
+          .map((e) => ({ name: `${e.USR} (${e.sites[0]})`, value: e.USR })),
+      ];
+      const username = options.length === 2
+        ? options[1].value
+        : await Select.prompt({ message: "Select account:", options });
+      printResult(await client.getPasswordForURL(url, username), !json);
     }
   })
   .command("get", "Get a password for a website.")
   .arguments("<url:string> [username:string]")
-  .action(async (_, url: string, username?: string) => {
-    PrintEntries(await client.getPasswordForURL(url, username));
+  .action(async ({ table, json }: { table?: boolean; json?: boolean }, url: string, username?: string) => {
+    printResult(await client.getPasswordForURL(url, username), !!table && !json);
   })
   .command("list", "List available accounts for a website.")
   .arguments("<url:string>")
-  .action(async (_, url: string) => {
-    PrintEntries(await client.getLoginNamesForURL(url));
+  .action(async ({ table, json }: { table?: boolean; json?: boolean }, url: string) => {
+    printResult(await client.getLoginNamesForURL(url), !!table && !json);
   })
   .command("save", "Create or update a password.")
   .arguments("<url:string> <username:string>")
@@ -98,7 +125,7 @@ const pw = new Command()
       minLength: 1,
     });
     await client.saveAccountForURL(url, username, password);
-    PrintSuccess();
+    printSuccess();
   });
 
 const start = new Command()
@@ -109,17 +136,27 @@ const start = new Command()
     if (!browsers.length) {
       throw new APWError(Status.GENERIC_ERROR, "No supported Chromium browser is installed.");
     }
-    const selected = (options.browser ?? await Select.prompt({
-      message: "Browser:",
-      options: browsers.map(({ name }) => name),
-    })).toLowerCase();
+    const saved = readConfig().browser ?? "auto";
+    let selected: string;
+    if (options.browser) {
+      selected = options.browser.toLowerCase();
+    } else if (Deno.stdin.isTerminal()) {
+      selected = (await Select.prompt({
+        message: "Browser:",
+        default: saved,
+        options: ["auto", ...browsers.map(({ id }) => id)],
+      })).toLowerCase();
+    } else {
+      selected = saved;
+    }
+    if (selected !== saved) writeConfig({ browser: selected });
     const browser = selected === "auto"
       ? browsers[0]
       : browsers.find(({ id, name }) => id === selected || name.toLowerCase() === selected);
     if (!browser) {
       throw new APWError(Status.INVALID_PARAM, `Unsupported browser: ${selected}`);
     }
-    await Daemon(browser);
+    await daemon(browser);
   });
 
 const auth = new Command()
@@ -132,18 +169,18 @@ const auth = new Command()
       maxLength: 6,
     });
     await client.verifyChallenge(pin);
-    PrintSuccess();
+    printSuccess();
   })
   .command("request", "Request a challenge from the daemon.")
   .action(async () => {
     await client.requestChallenge();
-    PrintSuccess();
+    printSuccess();
   })
   .command("response", "Respond to a challenge from the daemon.")
   .option("-p, --pin <pin>", "challenge-response pin.", { required: true })
   .action(async (options: { pin: string }) => {
     await client.verifyChallenge(options.pin);
-    PrintSuccess();
+    printSuccess();
   });
 
 try {

@@ -1,4 +1,5 @@
 import bridgeSource from "../ext/bridge.js" with { type: "text" };
+import { writeConfig } from "./config.ts";
 import { APWError, BROWSER_PROFILE_PATH, EXTENSION_PATH, Status } from "./const.ts";
 
 const HOME = Deno.env.get("HOME")!;
@@ -26,9 +27,9 @@ function browser(id: string, name: string, app: string, dataDir: string): Browse
 
 const BROWSERS = [
   browser("chromium", "Ungoogled Chromium", "Chromium", "Chromium"),
-  browser("chrome", "Google Chrome", "Google Chrome", "Google/Chrome"),
-  browser("brave", "Brave", "Brave Browser", "BraveSoftware/Brave-Browser"),
   browser("edge", "Microsoft Edge", "Microsoft Edge", "Microsoft Edge"),
+  browser("brave", "Brave", "Brave Browser", "BraveSoftware/Brave-Browser"),
+  browser("chrome", "Google Chrome", "Google Chrome", "Google/Chrome"),
 ];
 
 function exists(path: string): boolean {
@@ -62,8 +63,11 @@ function copyDirectory(source: string, target: string): void {
   for (const entry of Deno.readDirSync(source)) {
     const from = `${source}/${entry.name}`;
     const to = `${target}/${entry.name}`;
-    if (entry.isDirectory) copyDirectory(from, to);
-    else if (entry.isFile) Deno.copyFileSync(from, to);
+    if (entry.isDirectory) {
+      copyDirectory(from, to);
+    } else if (entry.isFile) {
+      Deno.copyFileSync(from, to);
+    }
   }
 }
 
@@ -80,23 +84,29 @@ function extensionSource(): string | undefined {
 }
 
 function buildExtension(config: { port: number; token: string }): void {
-  const source = extensionSource();
-  if (!source) {
-    throw new APWError(
-      Status.GENERIC_ERROR,
-      "Apple Passwords extension not found. Install it from the Chrome Web Store.",
-    );
+  const background = `${EXTENSION_PATH}/${BACKGROUND}`;
+  const orig = `${background}.orig`;
+
+  if (!exists(orig)) {
+    const source = extensionSource();
+    if (!source) {
+      throw new APWError(
+        Status.GENERIC_ERROR,
+        "Apple Passwords extension not found. Install it from the Chrome Web Store.",
+      );
+    }
+    remove(EXTENSION_PATH);
+    Deno.mkdirSync(EXTENSION_PATH, { recursive: true });
+    copyDirectory(source, EXTENSION_PATH);
+    remove(`${EXTENSION_PATH}/_metadata`);
+    Deno.copyFileSync(background, orig);
+    writeConfig({ extensionVersion: source.split("/").at(-1)!, extensionPath: source });
   }
 
-  remove(EXTENSION_PATH);
-  Deno.mkdirSync(EXTENSION_PATH, { recursive: true });
-
-  copyDirectory(source, EXTENSION_PATH);
-
-  const background = `${EXTENSION_PATH}/${BACKGROUND}`;
-  const original = Deno.readTextFileSync(background);
-  remove(`${EXTENSION_PATH}/_metadata`);
-  Deno.writeTextFileSync(background, `${original}\nself.APW_CONFIG = ${JSON.stringify(config)};\n${bridgeSource}\n`);
+  Deno.writeTextFileSync(
+    background,
+    `${Deno.readTextFileSync(orig)}\nself.APW_CONFIG = ${JSON.stringify(config)};\n${bridgeSource}\n`,
+  );
 }
 
 export function installedBrowsers(): Browser[] {

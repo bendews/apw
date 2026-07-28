@@ -127,7 +127,7 @@ async function handleCliConnection(
   }
 }
 
-export async function Daemon(browser: Browser): Promise<void> {
+export async function daemon(browser: Browser): Promise<void> {
   Deno.mkdirSync(DATA_PATH, { recursive: true, mode: 0o700 });
   Deno.chmodSync(DATA_PATH, 0o700);
 
