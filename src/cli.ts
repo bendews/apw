@@ -1,4 +1,4 @@
-import { Command, Input, Row, Secret, Select, Table } from "./deps.ts";
+import { Command, Input, Secret, Select } from "./deps.ts";
 import { daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
 import { installedBrowsers } from "./browser.ts";
