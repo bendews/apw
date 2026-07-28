@@ -13,23 +13,25 @@ export interface Browser {
   bin: string;
   profile: string;
   dataPath: string;
+  brewCask: string;
 }
 
-function browser(id: string, name: string, app: string, dataDir: string): Browser {
+function browser(id: string, name: string, app: string, dataDir: string, brewCask: string): Browser {
   return {
     id,
     name,
     bin: `/Applications/${app}.app/Contents/MacOS/${app}`,
     profile: `${BROWSER_PROFILE_PATH}/${id}`,
     dataPath: `${HOME}/Library/Application Support/${dataDir}`,
+    brewCask,
   };
 }
 
-const BROWSERS = [
-  browser("chromium", "Ungoogled Chromium", "Chromium", "Chromium"),
-  browser("edge", "Microsoft Edge", "Microsoft Edge", "Microsoft Edge"),
-  browser("brave", "Brave", "Brave Browser", "BraveSoftware/Brave-Browser"),
-  browser("chrome", "Google Chrome", "Google Chrome", "Google/Chrome"),
+export const BROWSERS = [
+  browser("chromium", "Ungoogled Chromium", "Chromium", "Chromium", "ungoogled-chromium"),
+  browser("edge", "Microsoft Edge", "Microsoft Edge", "Microsoft Edge", "microsoft-edge"),
+  browser("brave", "Brave", "Brave Browser", "BraveSoftware/Brave-Browser", "brave-browser"),
+  browser("chrome", "Google Chrome", "Google Chrome", "Google/Chrome", "google-chrome"),
 ];
 
 function exists(path: string): boolean {

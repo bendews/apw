@@ -130,6 +130,19 @@ export class ApplePasswordManager {
     };
   }
 
+  async checkReady(): Promise<void> {
+    try {
+      await this.sendMessage({ cmd: Command.GET_CAPABILITIES });
+    } catch (error) {
+      if (error instanceof APWError && error.status === Status.INVALID_SESSION) {
+        if (error.message === "unpaired") {
+          throw new APWError(Status.INVALID_SESSION, "APW is not authorised. Run `apw auth` to pair.");
+        }
+        throw new APWError(Status.INVALID_SESSION, "APW is not running. Start it with `apw start`.");
+      }
+    }
+  }
+
   async requestChallenge(): Promise<void> {
     await this.sendMessage({ cmd: Command.HANDSHAKE });
   }
@@ -148,8 +161,9 @@ export class ApplePasswordManager {
 
   async saveAccountForURL(url: string, loginName: string, password: string): Promise<void> {
     const response = await this.sendMessage(APWMessages.saveAccountForURL(url, loginName, password));
-    if ("status" in response && response.status !== Status.SUCCESS)
+    if ("status" in response && response.status !== Status.SUCCESS) {
       throw new APWError(response.status, response.error);
+    }
   }
 
   getOTPForURL(url: string): Promise<Payload> {

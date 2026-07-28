@@ -1,7 +1,7 @@
 import { Command, Input, Secret, Select } from "./deps.ts";
 import { daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
-import { installedBrowsers } from "./browser.ts";
+import { BROWSERS, installedBrowsers } from "./browser.ts";
 import { readConfig, writeConfig } from "./config.ts";
 import { APWError, Status, VERSION } from "./const.ts";
 import type { PasswordEntry, Payload } from "./types.ts";
@@ -42,6 +42,7 @@ const otp = new Command()
   .globalOption("-t, --table", "Output as a table.")
   .globalOption("-j, --json", "Output as JSON.")
   .action(async ({ json }: { json?: boolean }) => {
+    await client.checkReady();
     const action: string = await Select.prompt({
       message: "Choose an action: ",
       options: ["list OTPs", "get OTPs"],
@@ -69,6 +70,7 @@ const pw = new Command()
   .globalOption("-t, --table", "Output as a table.")
   .globalOption("-j, --json", "Output as JSON.")
   .action(async ({ json }: { json?: boolean }) => {
+    await client.checkReady();
     const action: string = await Select.prompt({
       message: "Choose an action: ",
       options: ["list accounts", "get password", "save account"],
@@ -134,7 +136,8 @@ const start = new Command()
   .action(async (options: { browser?: string }) => {
     const browsers = installedBrowsers();
     if (!browsers.length) {
-      throw new APWError(Status.GENERIC_ERROR, "No supported Chromium browser is installed.");
+      const hints = BROWSERS.map(({ name, brewCask }) => `  brew install --cask ${brewCask}  # ${name}`).join("\n");
+      throw new APWError(Status.GENERIC_ERROR, `No supported browser found. Install one:\n${hints}`);
     }
     const saved = readConfig().browser ?? "auto";
     let selected: string;
