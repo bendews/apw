@@ -132,14 +132,10 @@ export class ApplePasswordManager {
 
   async checkReady(): Promise<void> {
     try {
-      await this.sendMessage({ cmd: Command.GET_CAPABILITIES });
-    } catch (error) {
-      if (error instanceof APWError && error.status === Status.INVALID_SESSION) {
-        if (error.message === "unpaired") {
-          throw new APWError(Status.INVALID_SESSION, "APW is not authorised. Run `apw auth` to pair.");
-        }
-        throw new APWError(Status.INVALID_SESSION, "APW is not running. Start it with `apw start`.");
-      }
+      const conn = await Deno.connect({ transport: "unix", path: SOCKET_PATH });
+      conn.close();
+    } catch {
+      throw new APWError(Status.INVALID_SESSION, "APW is not running or not authorised. Run `apw start` then `apw auth`.");
     }
   }
 

@@ -2,7 +2,6 @@ import { Command, Status } from "./const.ts";
 
 export type Message =
   | { cmd: Command.HANDSHAKE; pin?: string }
-  | { cmd: Command.GET_CAPABILITIES }
   | {
     cmd: number;
     qid: string;
