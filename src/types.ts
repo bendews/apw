@@ -1,93 +1,42 @@
-import { Status } from "./const.ts";
+import { Command, Status } from "./const.ts";
 
-export interface RenamedPasswordEntry {
-  username: string;
-  domain: string;
-  password: string;
-}
+export type Message =
+  | { cmd: Command.HANDSHAKE; pin?: string }
+  | { cmd: Command.GET_CAPABILITIES }
+  | {
+    cmd: number;
+    qid: string;
+    tabId: number;
+    frameId: number;
+    url?: string;
+    body: unknown;
+  };
+
+export type DecryptedData = { STATUS: number } & Record<string, unknown>;
+
+export type APWResponse =
+  | { id: string; data: DecryptedData }
+  | { id: string; status: Status; error?: string };
 
 export interface PasswordEntry {
   USR: string;
+  PWD?: string;
   sites: string[];
-  PWD: string;
+  highLevelDomain?: string;
+  customTitle?: string;
+  CDate?: string;
+  ModDate?: string;
 }
 
 export interface TOTPEntry {
-  code: string;
+  code?: string;
   username: string;
-  source: string;
   domain: string;
+  source?: string;
 }
 
 export interface Payload {
   STATUS: Status;
-  Entries?: PasswordEntry[] | TOTPEntry[];
+  Entries: Array<PasswordEntry | TOTPEntry>;
   RequiresUserAuthenticationToFill?: boolean;
-}
-
-export interface Capabilities {
-  canFillOneTimeCodes?: boolean;
-  scanForOTPURI?: boolean;
-  shouldUseBase64?: boolean;
-  operatingSystem?: {
-    name: string;
-    majorVersion: number;
-    minorVersion: number;
-  };
-}
-export interface PAKEMessage {
-  TID: string;
-  MSG: number;
-  A: string;
-  s: string;
-  B: string;
-  VER: string;
-  PROTO: number;
-}
-
-export interface SMSG {
-  SMSG: {
-    TID: string;
-    SDATA: string;
-  };
-}
-
-export interface SRPHandshakeMessage {
-  QID: string;
-  HSTBRSR: string;
-  PAKE: PAKEMessage | string;
-}
-
-export interface Message {
-  cmd: number;
-  payload?: SRPHandshakeMessage | string | SMSG;
-  msg?: SRPHandshakeMessage | string;
-  capabilities?: Capabilities;
-  setUpTOTPPageURL?: string;
-  setUpTOTPURI?: string;
-  url?: string;
-  tabId?: number;
-  frameId?: number;
-}
-
-export interface ManifestConfig {
-  name: string;
-  description: string;
-  path: string;
-  type: string;
-  allowedOrigins: string[];
-}
-
-export interface APWConfig {
-  port?: number;
-  sharedKey: string;
-  username: string;
-}
-
-export interface SRPValues {
-  username?: string;
-  sharedKey?: bigint;
-  clientPrivateKey?: bigint;
-  salt?: bigint;
-  serverPublicKey?: bigint;
 }

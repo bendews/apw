@@ -1,6 +1,8 @@
 name: Deno
 
-on: push
+on:
+  push:
+  pull_request:
 
 permissions:
   contents: write
@@ -10,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup repo
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
-          deno-version: v1.42.1
+          deno-version: v2.9.2
 
       - name: Verify formatting
         run: deno fmt --check
@@ -24,10 +26,14 @@ jobs:
       - name: Verify linting
         run: deno lint
 
+      - name: Verify types
+        run: deno check src/cli.ts
+
       - name: Build
-        run: mkdir dist
-          && deno compile --unstable-net --no-check --allow-all --target x86_64-apple-darwin --output dist/apw-x86_64-apple-darwin src/cli.ts
-          && deno compile --unstable-net --no-check --allow-all --target aarch64-apple-darwin --output dist/apw-aarch64-apple-darwin src/cli.ts
+        run: |
+          mkdir -p dist
+          deno task compile:x86_64
+          deno task compile:aarch64
 
       - name: Release
         uses: softprops/action-gh-release@v2
