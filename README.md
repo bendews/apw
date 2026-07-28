@@ -39,25 +39,45 @@ https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
 
 ## Getting Started
 
-APW requires macOS 14 or later and one of these browsers with the iCloud Passwords extension installed: Ungoogled
-Chromium, Chrome, Brave, or Edge.
+**APW requires a supported browser with the <ins>iCloud Passwords extension installed</ins>**:
+  - **Ungoogled Chromium**: `brew install --cask ungoogled-chromium`
+  - or **Google Chrome**: `brew install --cask google-chrome`
+  - or **Brave Browser**: `brew install --cask brave-browser`
+  - or **Microsoft Edge**: `brew install --cask microsoft-edge`
 
-**NOTE**: The selected browser will generally not be usable for general use while `apw` is running. It is recommended to
-install one as a secondary browser to your main one.
+<ins>Link to iCloud Passwords Extension: [Link](https://chromewebstore.google.com/detail/icloud-passwords/pejdijmoenmkgeppbflobdenhhabjlaj)</ins>
 
-### Installation
+> **Note:** The browser is launched headlessly in the background. It will generally not be usable for regular browsing while `apw` is running. Installing one of the above as a dedicated secondary browser is recommended.
 
-Install APW with Homebrew:
+### Quick Start
 
-```
+**1. Install APW**
+
+```sh
 brew install bendews/homebrew-tap/apw
 ```
 
-To enable the APW service to start on boot:
+**2. Start the daemon**
 
-```
+APW will detect the browser and extension automatically. To start at login:
+
+```sh
 brew services start apw
 ```
+
+**3. Authenticate**
+
+This step is required every time the daemon starts (e.g. on boot):
+
+```sh
+apw auth
+```
+
+A native macOS popup with a PIN will appear. Enter it when prompted to complete pairing.
+
+---
+
+APW is now running and ready to use.
 
 ## Integrations
 
@@ -72,17 +92,11 @@ The following are some future integration ideas:
 
 ## Usage
 
-Ensure the daemon is running in the background, either via `brew services start apw` or `apw start`.
+Ensure the daemon is running (`apw start` or `brew services start apw`) and authenticated (`apw auth`).
 
-Start with a specific browser without the interactive prompt:
+Start with a specific browser without the interactive prompt, selections will be persisted:
 
 `apw start --browser chrome`
-
-To authenticate the daemon interactively:
-
-_This is required every time the daemon starts i.e on boot_
-
-`apw auth`
 
 Query for available passwords (Interactive):
 
@@ -141,9 +155,6 @@ To build a statically compiled binary:
 deno task compile
 ```
 
-The tasks scope access to the current user’s home directory at compile time, so Homebrew-built binaries work with the
-installing user’s environment.
-
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any
@@ -161,18 +172,6 @@ simply open an issue with the tag "enhancement". Don't forget to give the projec
 ## License
 
 Distributed under the GPL V3.0 License. See `LICENSE` for more information.
-
-## Contact
-
-Ben Dews - [#](https://bendews.com)
-
-Project Link: [https://github.com/bendews/apw](https://github.com/bendews/apw)
-
-<!-- ACKNOWLEDGMENTS -->
-
-## Acknowledgments
-
-- [au2001 - iCloud Passwords for Firefox](https://github.com/au2001/icloud-passwords-firefox)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
