@@ -146,8 +146,10 @@ export class ApplePasswordManager {
     return this.getPayload(APWMessages.getPasswordForURL(url, loginName));
   }
 
-  saveAccountForURL(url: string, loginName: string, password: string): Promise<Payload> {
-    return this.getPayload(APWMessages.saveAccountForURL(url, loginName, password));
+  async saveAccountForURL(url: string, loginName: string, password: string): Promise<void> {
+    const response = await this.sendMessage(APWMessages.saveAccountForURL(url, loginName, password));
+    if ("status" in response && response.status !== Status.SUCCESS)
+      throw new APWError(response.status, response.error);
   }
 
   getOTPForURL(url: string): Promise<Payload> {

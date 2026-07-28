@@ -118,13 +118,13 @@ const pw = new Command()
     printResult(await client.getLoginNamesForURL(url), !!table && !json);
   })
   .command("save", "Create or update a password.")
+  .option("--stdin", "Read password from stdin instead of prompting.")
   .arguments("<url:string> <username:string>")
-  .action(async (_, url: string, username: string) => {
-    const password = await Secret.prompt({
-      message: "Enter password: ",
-      minLength: 1,
-    });
-    await client.saveAccountForURL(url, username, password);
+  .action(async (options: { stdin?: boolean }, url: string, username: string) => {
+    const pwd = options.stdin
+      ? (await new Response(Deno.stdin.readable).text()).trim()
+      : await Secret.prompt({ message: "Enter password: ", minLength: 1 });
+    await client.saveAccountForURL(url, username, pwd);
     printSuccess();
   });
 
