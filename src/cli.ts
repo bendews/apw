@@ -47,7 +47,7 @@ const otp = new Command()
       message: "Choose an action: ",
       options: ["list OTPs", "get OTPs"],
     });
-    const url = await Input.prompt({ message: "Enter URL: " });
+    const url = await Input.prompt({ message: "Enter URL: ", minLength: 1 });
     if (action === "list OTPs") {
       printResult(await client.listOTPForURL(url), !json);
     } else if (action === "get OTPs") {
@@ -75,7 +75,7 @@ const pw = new Command()
       message: "Choose an action: ",
       options: ["list accounts", "get password", "save account"],
     });
-    const url = await Input.prompt({ message: "Enter URL: " });
+    const url = await Input.prompt({ message: "Enter URL: ", minLength: 1 });
     if (action === "save account") {
       const username = await Input.prompt({
         message: "Enter username: ",

@@ -152,14 +152,17 @@ export class ApplePasswordManager {
   }
 
   getLoginNamesForURL(url: string): Promise<Payload> {
+    if (!url) throw new APWError(Status.INVALID_PARAM, "URL is required");
     return this.getPayload(APWMessages.getLoginNamesForURL(url));
   }
 
   getPasswordForURL(url: string, loginName?: string): Promise<Payload> {
+    if (!url) throw new APWError(Status.INVALID_PARAM, "URL is required");
     return this.getPayload(APWMessages.getPasswordForURL(url, loginName));
   }
 
   async saveAccountForURL(url: string, loginName: string, password: string): Promise<void> {
+    if (!url) throw new APWError(Status.INVALID_PARAM, "URL is required");
     const response = await this.sendMessage(APWMessages.saveAccountForURL(url, loginName, password));
     if ("status" in response && response.status !== Status.SUCCESS) {
       throw new APWError(response.status, response.error);
@@ -167,10 +170,12 @@ export class ApplePasswordManager {
   }
 
   getOTPForURL(url: string): Promise<Payload> {
+    if (!url) throw new APWError(Status.INVALID_PARAM, "URL is required");
     return this.getPayload(APWMessages.getOTPForURL(url));
   }
 
   listOTPForURL(url: string): Promise<Payload> {
+    if (!url) throw new APWError(Status.INVALID_PARAM, "URL is required");
     return this.getPayload(APWMessages.listOTPForURL(url));
   }
 }
