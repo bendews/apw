@@ -40,14 +40,17 @@ https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
 ## Getting Started
 
 **APW requires a supported browser with the <ins>iCloud Passwords extension installed</ins>**:
-  - **Ungoogled Chromium**: `brew install --cask ungoogled-chromium`
-  - or **Google Chrome**: `brew install --cask google-chrome`
-  - or **Brave Browser**: `brew install --cask brave-browser`
-  - or **Microsoft Edge**: `brew install --cask microsoft-edge`
 
-<ins>Link to iCloud Passwords Extension: [Link](https://chromewebstore.google.com/detail/icloud-passwords/pejdijmoenmkgeppbflobdenhhabjlaj)</ins>
+- **Ungoogled Chromium**: `brew install --cask ungoogled-chromium`
+- or **Google Chrome**: `brew install --cask google-chrome`
+- or **Brave Browser**: `brew install --cask brave-browser`
+- or **Microsoft Edge**: `brew install --cask microsoft-edge`
 
-> **Note:** The browser is launched headlessly in the background. It will generally not be usable for regular browsing while `apw` is running. Installing one of the above as a dedicated secondary browser is recommended.
+<ins>Link to iCloud Passwords Extension:
+[Link](https://chromewebstore.google.com/detail/icloud-passwords/pejdijmoenmkgeppbflobdenhhabjlaj)</ins>
+
+> **Note:** The browser is launched headlessly in the background. It will generally not be usable for regular browsing
+> while `apw` is running. Installing one of the above as a dedicated secondary browser is recommended.
 
 ### Quick Start
 
