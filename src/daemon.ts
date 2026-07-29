@@ -93,7 +93,13 @@ async function handleCliConnection(
   const encoder = new TextEncoder();
   const buf = new Uint8Array(1024 * 64);
   let text = "";
-  const send = (response: APWResponse) => conn.write(encoder.encode(`${JSON.stringify(response)}\n`));
+  const send = async (response: APWResponse) => {
+    try {
+      await conn.write(encoder.encode(`${JSON.stringify(response)}\n`));
+    } catch (e) {
+      if ((e as { code?: string }).code !== "EPIPE") throw e;
+    }
+  };
 
   try {
     const deadline = setTimeout(() => conn.close(), REQUEST_TIMEOUT_MS);
