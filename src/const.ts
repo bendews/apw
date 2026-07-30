@@ -1,5 +1,5 @@
 export const DATA_PATH = `${Deno.env.get("HOME")}/.apw`;
-export const VERSION = "1.1.0";
+export const VERSION = "1.1.1";
 export const SOCKET_PATH = `${DATA_PATH}/apw.sock`;
 export const EXTENSION_PATH = `${DATA_PATH}/extension`;
 export const BROWSER_PROFILE_PATH = `${DATA_PATH}/browser`;
