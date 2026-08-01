@@ -84,10 +84,10 @@ APW is now running and ready to use.
 
 ## Integrations
 
-The following integrations have been completed:
+The following integrations provide quick access to passwords and OTP tokens:
 
-- Raycast [extension link](https://github.com/bendews/apw-raycast) to provide quick access to passwords and OTP tokens.
-  Will automatically retrieve entries for the currently active webpage.
+- [Raycast extension](https://github.com/bendews/apw-raycast) automatically retrieves entries for the currently active webpage.
+- [LaunchBar action](https://github.com/andesco/launchbar-apple-passwords) finds entries for a typed domain and pastes the selected entry.
 
 The following are some future integration ideas:
 
