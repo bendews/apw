@@ -94,8 +94,17 @@ async function handleCliConnection(
   const buf = new Uint8Array(1024 * 64);
   let text = "";
   const send = async (response: APWResponse) => {
+    const payload = encoder.encode(`${JSON.stringify(response)}\n`);
     try {
-      await conn.write(encoder.encode(`${JSON.stringify(response)}\n`));
+      // conn.write resolves once the socket accepts *some* bytes, and a unix
+      // stream socket's send buffer is 8 KiB (net.local.stream.sendspace), so a
+      // larger reply has to be written in a loop. Writing it once truncates the
+      // JSON mid-string and the client fails to parse at exactly position 8192.
+      for (let written = 0; written < payload.length;) {
+        const n = await conn.write(payload.subarray(written));
+        if (n <= 0) break;
+        written += n;
+      }
     } catch (e) {
       if ((e as { code?: string }).code !== "EPIPE") throw e;
     }
@@ -110,30 +119,47 @@ async function handleCliConnection(
         text += decoder.decode(buf.subarray(0, n));
         if (text.length > 1024 * 1024) break;
       }
-    } finally {
-      clearTimeout(deadline);
-    }
 
-    try {
       const message = JSON.parse(text.split("\n", 1)[0]) as Message;
       if (typeof message.cmd !== "number") {
         throw new APWError(Status.INVALID_PARAM);
       }
       await send(await session.request(message));
-    } catch (error) {
-      const err = error as Error;
-      await send({
-        id: "",
-        status: err instanceof APWError ? err.status : Status.SERVER_ERROR,
-        error: err.message,
-      });
+    } finally {
+      clearTimeout(deadline);
     }
+  } catch (error) {
+    // Covers the read as well as the request: a client that disconnects or sends
+    // a truncated line still gets an answer rather than a bare EOF.
+    const err = error as Error;
+    await send({
+      id: "",
+      status: err instanceof APWError ? err.status : Status.SERVER_ERROR,
+      error: err.message,
+    });
   } finally {
-    conn.close();
+    try {
+      conn.close();
+    } catch {
+      // Already closed by the deadline; not an error worth masking the real one.
+    }
   }
 }
 
 export async function daemon(browser: Browser): Promise<void> {
+  // Before anything is started: taking the socket from a daemon that is already
+  // serving would leave it to die in its accept loop with EINVAL and orphan its
+  // browser. Checked here so a duplicate start costs nothing.
+  try {
+    const probe = await Deno.connect({ transport: "unix", path: SOCKET_PATH });
+    probe.close();
+    throw new APWError(Status.GENERIC_ERROR, "apw is already running.");
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound || error instanceof Deno.errors.ConnectionRefused)) {
+      throw error;
+    }
+  }
+
   Deno.mkdirSync(DATA_PATH, { recursive: true, mode: 0o700 });
   Deno.chmodSync(DATA_PATH, 0o700);
 
@@ -156,6 +182,9 @@ export async function daemon(browser: Browser): Promise<void> {
       child.kill("SIGTERM");
       await child.status;
     } catch { /* ignore */ }
+    try {
+      Deno.removeSync(SOCKET_PATH);
+    } catch { /* already gone */ }
     Deno.exit(0);
   };
   for (const signal of ["SIGINT", "SIGTERM"] as const) Deno.addSignalListener(signal, shutdown);

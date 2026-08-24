@@ -2,17 +2,18 @@ import { Action, APWError, Command, SOCKET_PATH, Status } from "./const.ts";
 import type { APWResponse, DecryptedData, Message, PasswordEntry, Payload, TOTPEntry } from "./types.ts";
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-
 async function readLine(conn: Deno.Conn): Promise<string> {
+  // Local to the call and streaming: a shared decoder carries state between
+  // requests, and a non-streaming one mangles any character straddling a read.
+  const decoder = new TextDecoder();
   const buf = new Uint8Array(64 * 1024);
   let text = "";
   while (!text.includes("\n")) {
     const n = await conn.read(buf);
     if (n === null) break;
-    text += decoder.decode(buf.subarray(0, n));
+    text += decoder.decode(buf.subarray(0, n), { stream: true });
   }
-  return text.split("\n", 1)[0];
+  return (text + decoder.decode()).split("\n", 1)[0];
 }
 
 export const APWMessages = {
@@ -110,7 +111,14 @@ export class ApplePasswordManager {
     }
 
     try {
-      await conn.write(encoder.encode(`${JSON.stringify(message)}\n`));
+      // conn.write returns after the socket accepts *some* bytes, so a large
+      // request (a long password on save) must be drained in a loop.
+      const payload = encoder.encode(`${JSON.stringify(message)}\n`);
+      for (let written = 0; written < payload.length;) {
+        const n = await conn.write(payload.subarray(written));
+        if (n <= 0) break;
+        written += n;
+      }
       const response = JSON.parse(await readLine(conn)) as APWResponse;
       if (!("data" in response) && response.status !== Status.SUCCESS) {
         throw new APWError(response.status, response.error);
