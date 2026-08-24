@@ -3,6 +3,7 @@ import { daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
 import { BROWSERS, installedBrowsers } from "./browser.ts";
 import { readConfig, writeConfig } from "./config.ts";
+import { emailScopeHint, fuzzySearch, listWithFallback, otpUsernames } from "./search.ts";
 import { APWError, Status, VERSION } from "./const.ts";
 import type { PasswordEntry, Payload } from "./types.ts";
 
@@ -10,12 +11,13 @@ const client = new ApplePasswordManager();
 
 const printSuccess = () => console.log(JSON.stringify({ status: Status.SUCCESS }));
 
-function printResult(payload: Payload, table: boolean): void {
+function printResult(payload: Payload, table: boolean, otpNames?: Set<string>): void {
   const entries = payload.Entries.map((entry) => {
     if ("USR" in entry) {
       return {
         username: entry.USR,
         domain: entry.sites[0],
+        ...(otpNames && { has_otp: otpNames.has(entry.USR.toLowerCase()) }),
         ...(entry.customTitle && { title: entry.customTitle }),
         ...(entry.PWD !== "Not Included" && { password: entry.PWD }),
         ...(entry.sites && { sites: entry.sites }),
@@ -60,10 +62,13 @@ const otp = new Command()
     printResult(await client.getOTPForURL(url), !!table && !json);
   })
   .command("list", "List available OTPs for a website.")
+  .option("--no-fuzzy", "Only match the URL exactly.")
   .arguments("<url:string>")
-  .action(async ({ table, json }: { table?: boolean; json?: boolean }, url: string) => {
-    printResult(await client.listOTPForURL(url), !!table && !json);
-  });
+  .action(
+    async ({ table, json, fuzzy }: { table?: boolean; json?: boolean; fuzzy?: boolean }, url: string) => {
+      printResult(await listWithFallback(client, url, "otp", fuzzy), !!table && !json);
+    },
+  );
 
 const pw = new Command()
   .description("Interactively manage accounts/passwords.")
@@ -115,10 +120,13 @@ const pw = new Command()
     printResult(await client.getPasswordForURL(url, username), !!table && !json);
   })
   .command("list", "List available accounts for a website.")
+  .option("--no-fuzzy", "Only match the URL exactly.")
   .arguments("<url:string>")
-  .action(async ({ table, json }: { table?: boolean; json?: boolean }, url: string) => {
-    printResult(await client.getLoginNamesForURL(url), !!table && !json);
-  })
+  .action(
+    async ({ table, json, fuzzy }: { table?: boolean; json?: boolean; fuzzy?: boolean }, url: string) => {
+      printResult(await listWithFallback(client, url, "pw", fuzzy), !!table && !json);
+    },
+  )
   .command("save", "Create or update a password.")
   .option("--stdin", "Read password from stdin instead of prompting.")
   .arguments("<url:string> <username:string>")
@@ -129,6 +137,26 @@ const pw = new Command()
     await client.saveAccountForURL(url, username, pwd);
     printSuccess();
   });
+
+const find = new Command()
+  .description("Fuzzy-search accounts by site or email.")
+  .option("-t, --table", "Output as a table.")
+  .option("-j, --json", "Output as JSON.")
+  .option("--no-otp", "Skip one-time codes.")
+  .option("-u, --user <user:string>", "Only accounts whose username contains this.")
+  .arguments("<query:string>")
+  .action(
+    async (
+      { table, json, otp, user }: { table?: boolean; json?: boolean; otp?: boolean; user?: string },
+      query: string,
+    ) => {
+      await client.checkReady();
+      const payload = await fuzzySearch(client, query, { otp, user });
+      printResult(payload, !!table && !json, otpUsernames(payload));
+      const hint = emailScopeHint(query, payload.Entries.length);
+      if (hint) console.error(hint);
+    },
+  );
 
 const start = new Command()
   .description("Start APW and choose a managed browser.")
@@ -191,6 +219,7 @@ try {
     .name("apw")
     .version(`v${VERSION}`)
     .description("🔑 a CLI for Apple Passwords 🔒")
+    .command("find", find)
     .command("auth", auth)
     .command("pw", pw)
     .command("otp", otp)
