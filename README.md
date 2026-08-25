@@ -120,6 +120,28 @@ Retrieve a one-time code:
 
 `apw otp get google.com`
 
+### Search
+
+`pw list` and `otp list` take an exact hostname. `find` takes whatever you can remember and works out which hostnames to
+ask about:
+
+`apw find github`
+
+An `@` makes it an account rather than a site:
+
+`apw find me@example.com`
+
+A site the helper has never been asked about has to be searched by its full hostname once. After that `find` remembers
+it, in `~/.apw/index.json`, and the short form works.
+
+What it records is every hostname attached to the accounts a search finds, which includes hostnames you did not type:
+Apple stores several sites against one credential. The file holds hostnames and the date each was last seen — never
+usernames, never passwords — and is written by `find` and by `apw index`. Recording is on by default; `apw index --off`
+stops it.
+
+`apw index` lists what it has remembered and `apw index --forget` clears it, or `apw index --forget wiki` drops matching
+hosts. Deleting the file by hand is equivalent to `--forget`.
+
 View more commands & help:
 
 `apw --help`

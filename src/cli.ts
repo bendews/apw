@@ -3,6 +3,8 @@ import { daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
 import { BROWSERS, installedBrowsers } from "./browser.ts";
 import { readConfig, writeConfig } from "./config.ts";
+import { emailScopeHint, fuzzySearch, hasCode } from "./search.ts";
+import * as recall from "./recall.ts";
 import { APWError, Status, VERSION } from "./const.ts";
 import type { PasswordEntry, Payload } from "./types.ts";
 
@@ -10,12 +12,17 @@ const client = new ApplePasswordManager();
 
 const printSuccess = () => console.log(JSON.stringify({ status: Status.SUCCESS }));
 
-function printResult(payload: Payload, table: boolean): void {
+function printResult(
+  payload: Payload,
+  table: boolean,
+  coded?: (entry: Payload["Entries"][number]) => boolean,
+): void {
   const entries = payload.Entries.map((entry) => {
     if ("USR" in entry) {
       return {
         username: entry.USR,
-        domain: entry.sites[0],
+        domain: entry.sites?.[0] ?? "",
+        ...(coded && { hasOtp: coded(entry) }),
         ...(entry.customTitle && { title: entry.customTitle }),
         ...(entry.PWD !== "Not Included" && { password: entry.PWD }),
         ...(entry.sites && { sites: entry.sites }),
@@ -130,6 +137,49 @@ const pw = new Command()
     printSuccess();
   });
 
+const find = new Command()
+  .description("Search accounts by site or address.")
+  .option("-t, --table", "Output as a table.")
+  .option("-j, --json", "Output as JSON.")
+  .arguments("<query:string>")
+  .action(async ({ table, json }: { table?: boolean; json?: boolean }, query: string) => {
+    const result = await fuzzySearch(client, query);
+
+    // An address that reached nothing is not the same as a site with no
+    // account, so say which it was rather than printing a bare empty list.
+    const hint = emailScopeHint(query, result.entries.length);
+    if (hint) {
+      console.log(JSON.stringify({ results: [], status: Status.SUCCESS, hint }));
+      return;
+    }
+
+    const payload: Payload = { STATUS: Status.SUCCESS, Entries: result.entries };
+    printResult(payload, !!table && !json, (entry) => hasCode(result, entry));
+  });
+
+const index = new Command()
+  .description("Show or clear the hostnames `find` has remembered.")
+  .option("--forget [query:string]", "Forget everything, or hosts matching a query.")
+  .option("--off", "Stop remembering hostnames.")
+  .option("--on", "Resume remembering hostnames.")
+  .action(({ forget, off, on }: { forget?: string | true; off?: boolean; on?: boolean }) => {
+    if (off && on) throw new APWError(Status.INVALID_PARAM, "Use either --off or --on, not both.");
+    // Switching recall off does not imply forgetting what is already there, so
+    // both flags together must do both rather than the first one only.
+    if (off || on) writeConfig({ recall: !off });
+
+    if (forget !== undefined) {
+      const dropped = recall.forget(typeof forget === "string" ? forget : undefined);
+      console.log(JSON.stringify({ results: [], forgotten: dropped, status: Status.SUCCESS }));
+      return;
+    }
+    if (off || on) {
+      printSuccess();
+      return;
+    }
+    console.log(JSON.stringify({ results: recall.hosts(), status: Status.SUCCESS }));
+  });
+
 const start = new Command()
   .description("Start APW and choose a managed browser.")
   .option("-b, --browser <browser:string>", "Browser to use (auto, chromium, chrome, brave, or edge).")
@@ -194,6 +244,8 @@ try {
     .command("auth", auth)
     .command("pw", pw)
     .command("otp", otp)
+    .command("find", find)
+    .command("index", index)
     .command("start", start)
     .parse(Deno.args);
 } catch (error: unknown) {
