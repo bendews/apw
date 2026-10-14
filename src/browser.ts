@@ -115,40 +115,53 @@ export function installedBrowsers(): Browser[] {
   return BROWSERS.filter(({ bin }) => exists(bin));
 }
 
-async function debuggerUrl(port: number): Promise<string> {
-  const endpoint = `http://127.0.0.1:${port}/json/version`;
-  for (let attempt = 0; attempt < 60; attempt++) {
-    const data = await fetch(endpoint).then((response) => response.json()).catch(() => ({}));
-    if (data.webSocketDebuggerUrl) return data.webSocketDebuggerUrl;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error("Browser DevTools endpoint did not start");
-}
+// DevTools over --remote-debugging-pipe: the browser reads commands from fd 3 and writes replies to fd 4,
+// each message a JSON string terminated by "\0". Only the process holding the pipe can drive the browser,
+// unlike --remote-debugging-port, which any local process (or user) can connect to.
+async function loadExtension(child: Deno.ChildProcess): Promise<void> {
+  const writer = child.stdin.getWriter();
+  const reader = child.stdout.getReader();
+  const decoder = new TextDecoder();
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-async function loadExtension(port: number): Promise<void> {
-  const socket = new WebSocket(await debuggerUrl(port));
+  const response = (async () => {
+    await writer.write(
+      new TextEncoder().encode(
+        `${JSON.stringify({ id: 1, method: "Extensions.loadUnpacked", params: { path: EXTENSION_PATH } })}\0`,
+      ),
+    );
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) throw new Error("Browser closed the DevTools pipe");
+      buffer += decoder.decode(value, { stream: true });
+      for (let end = buffer.indexOf("\0"); end !== -1; end = buffer.indexOf("\0")) {
+        const message = JSON.parse(buffer.slice(0, end));
+        buffer = buffer.slice(end + 1);
+        if (message.id === 1) {
+          if (message.error) throw new Error(message.error.message);
+          return;
+        }
+      }
+    }
+  })();
+  response.catch(() => {}); // settled via the race below; avoids an unhandled rejection after a timeout
+
   try {
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Extensions.loadUnpacked timed out")), 15_000);
-      const finish = (error?: Error) => {
-        clearTimeout(timer);
-        error ? reject(error) : resolve();
-      };
-      socket.onerror = () => finish(new Error("DevTools connection failed"));
-      socket.onopen = () =>
-        socket.send(JSON.stringify({
-          id: 1,
-          method: "Extensions.loadUnpacked",
-          params: { path: EXTENSION_PATH },
-        }));
-      socket.onmessage = (event) => {
-        const message = JSON.parse(event.data as string);
-        if (message.id === 1) finish(message.error && new Error(message.error.message));
-      };
-    });
+    await Promise.race([
+      response,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("Extensions.loadUnpacked timed out")), 15_000);
+      }),
+    ]);
   } finally {
-    socket.close();
+    clearTimeout(timer);
+    writer.releaseLock();
+    reader.releaseLock();
   }
+
+  // Keep the command pipe open for the browser's lifetime, and drain its output so it never blocks on fd 4.
+  child.stdout.pipeTo(new WritableStream()).catch(() => {});
 }
 
 export async function launchBrowser(
@@ -161,12 +174,15 @@ export async function launchBrowser(
   Deno.mkdirSync(hosts, { recursive: true });
   Deno.copyFileSync(APPLE_MANIFEST, `${hosts}/com.apple.passwordmanager.json`);
 
-  const port = 9500 + Math.floor(Math.random() * 400);
-  const child = new Deno.Command(browser.bin, {
+  // Deno can't hand a child extra file descriptors, so a shell maps the child's stdin/stdout onto fds 3/4
+  // and then execs the browser (same PID, so child.kill still reaches it).
+  const child = new Deno.Command("/bin/sh", {
     args: [
+      "-c",
+      'exec "$0" "$@" 3<&0 4>&1 </dev/null >/dev/null',
+      browser.bin,
       `--user-data-dir=${browser.profile}`,
-      `--remote-debugging-port=${port}`,
-      "--remote-allow-origins=*",
+      "--remote-debugging-pipe",
       "--enable-unsafe-extension-debugging",
       "--headless=new",
       "--no-first-run",
@@ -174,12 +190,13 @@ export async function launchBrowser(
       "--disable-background-timer-throttling",
       "--disable-backgrounding-occluded-windows",
     ],
-    stdout: "null",
+    stdin: "piped",
+    stdout: "piped",
     stderr: "null",
   }).spawn();
 
   try {
-    await loadExtension(port);
+    await loadExtension(child);
     return child;
   } catch (error) {
     child.kill("SIGTERM");
