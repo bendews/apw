@@ -1,4 +1,4 @@
-import { CONFIG_PATH } from "./const.ts";
+import { CONFIG_PATH, DATA_PATH } from "./const.ts";
 
 export interface Config {
   browser?: string;
@@ -15,5 +15,7 @@ export function readConfig(): Config {
 }
 
 export function writeConfig(patch: Partial<Config>): void {
+  // `apw start --browser` writes config before the daemon creates DATA_PATH, so create it here.
+  Deno.mkdirSync(DATA_PATH, { recursive: true, mode: 0o700 });
   Deno.writeTextFileSync(CONFIG_PATH, JSON.stringify({ ...readConfig(), ...patch }, null, 2));
 }
