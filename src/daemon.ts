@@ -95,7 +95,10 @@ async function handleCliConnection(
   let text = "";
   const send = async (response: APWResponse) => {
     try {
-      await conn.write(encoder.encode(`${JSON.stringify(response)}\n`));
+      // conn.write() may write only part of the buffer (macOS Unix sockets default to an 8 KB send buffer),
+      // so keep writing until the whole response is out.
+      const data = encoder.encode(`${JSON.stringify(response)}\n`);
+      for (let offset = 0; offset < data.length;) offset += await conn.write(data.subarray(offset));
     } catch (e) {
       if ((e as { code?: string }).code !== "EPIPE") throw e;
     }
