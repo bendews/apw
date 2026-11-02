@@ -32,6 +32,7 @@ export const BROWSERS = [
   browser("edge", "Microsoft Edge", "Microsoft Edge", "Microsoft Edge", "microsoft-edge"),
   browser("brave", "Brave", "Brave Browser", "BraveSoftware/Brave-Browser", "brave-browser"),
   browser("chrome", "Google Chrome", "Google Chrome", "Google/Chrome", "google-chrome"),
+  browser("dia", "Dia", "Dia", "Dia/User Data", "thebrowsercompany-dia"),
 ];
 
 function exists(path: string): boolean {
