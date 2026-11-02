@@ -132,7 +132,7 @@ const pw = new Command()
 
 const start = new Command()
   .description("Start APW and choose a managed browser.")
-  .option("-b, --browser <browser:string>", "Browser to use (auto, chromium, chrome, brave, or edge).")
+  .option("-b, --browser <browser:string>", "Browser to use (auto, chromium, chrome, brave, edge, or dia).")
   .action(async (options: { browser?: string }) => {
     const browsers = installedBrowsers();
     if (!browsers.length) {
