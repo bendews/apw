@@ -2,8 +2,7 @@
 
 ## Testing browser changes on macOS
 
-Install the iCloud Passwords extension in the supported browser, then run the
-checks and compile APW locally:
+Install the iCloud Passwords extension in the supported browser, then run the checks and compile APW locally:
 
 ```sh
 deno fmt --check
@@ -12,16 +11,14 @@ deno task compile
 ./apw start --browser dia
 ```
 
-Replace `dia` with the browser ID being tested. Confirm the browser launches,
-the extension loads, and APW reports that the extension connected. Stop the
-test process with Ctrl-C when finished. PIN authentication and password or OTP
+Replace `dia` with the browser ID being tested. Confirm the browser launches, the extension loads, and APW reports that
+the extension connected. Stop the test process with Ctrl-C when finished. PIN authentication and password or OTP
 retrieval should be tested separately when possible.
 
 ## Optional: test a Homebrew build from a fork
 
-For testing a branch through Homebrew, create a local tap and save a formula
-there. The example below builds the `dia-support` branch from a fork; replace
-`your-github-username` with your lowercase GitHub username:
+For testing a branch through Homebrew, create a local tap and save a formula there. The example below builds the
+`dia-support` branch from a fork; replace `your-github-username` with your lowercase GitHub username:
 
 ```sh
 brew tap-new your-github-username/local --no-git
@@ -49,7 +46,6 @@ RUBY
 brew install --HEAD --build-from-source your-github-username/local/apw
 ```
 
-This formula is a local testing aid only; it is not part of APW's source or
-release configuration. The project does not install browsers. It detects
-supported browser apps already installed in `/Applications`, including apps
-installed outside Homebrew.
+This formula is a local testing aid only; it is not part of APW's source or release configuration. The project does not
+install browsers. It detects supported browser apps already installed in `/Applications`, including apps installed
+outside Homebrew.
