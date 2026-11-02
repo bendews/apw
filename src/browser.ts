@@ -12,8 +12,8 @@ export interface Browser {
   name: string;
   bin: string;
   profile: string;
-  dataPath: string;
-  brewCask: string;
+  dataPath?: string;
+  brewCask?: string;
 }
 
 function browser(id: string, name: string, app: string, dataDir: string, brewCask: string): Browser {
@@ -33,6 +33,37 @@ export const BROWSERS = [
   browser("brave", "Brave", "Brave Browser", "BraveSoftware/Brave-Browser", "brave-browser"),
   browser("chrome", "Google Chrome", "Google Chrome", "Google/Chrome", "google-chrome"),
 ];
+
+export function customBrowser(executable: string): Browser {
+  let bin: string;
+  try {
+    bin = Deno.realPathSync(executable);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new APWError(Status.INVALID_PARAM, `Browser executable not found: ${executable}`);
+    }
+    throw error;
+  }
+
+  if (!bin.startsWith("/Applications/") || !/\.app\/Contents\/MacOS\/[^/]+$/.test(bin)) {
+    throw new APWError(
+      Status.INVALID_PARAM,
+      "Custom browser must be an executable inside an app bundle in /Applications.",
+    );
+  }
+
+  const info = Deno.statSync(bin);
+  if (!info.isFile || ((info.mode ?? 0) & 0o111) === 0) {
+    throw new APWError(Status.INVALID_PARAM, `Browser executable is not executable: ${bin}`);
+  }
+
+  return {
+    id: "custom",
+    name: bin.split("/").at(-1)!,
+    bin,
+    profile: `${BROWSER_PROFILE_PATH}/custom`,
+  };
+}
 
 function exists(path: string): boolean {
   try {
@@ -75,6 +106,7 @@ function copyDirectory(source: string, target: string): void {
 
 function extensionSource(): string | undefined {
   for (const { dataPath } of BROWSERS) {
+    if (!dataPath) continue;
     for (const profile of directories(dataPath)) {
       const base = `${dataPath}/${profile}/Extensions/${EXTENSION_ID}`;
       const version = directories(base).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).at(-1);
