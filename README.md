@@ -45,7 +45,8 @@ https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
 - or **Google Chrome**: `brew install --cask google-chrome`
 - or **Brave Browser**: `brew install --cask brave-browser`
 - or **Microsoft Edge**: `brew install --cask microsoft-edge`
-- or **Dia**: `brew install --cask thebrowsercompany-dia`
+
+Dia is also supported. If Dia is already installed in `/Applications` (for example, from a downloaded DMG), APW detects and uses it directly; **you do not need to install the Dia Homebrew cask**. APW never installs browsers automatically. The Homebrew commands above are optional ways to install the other browsers.
 
 <ins>Link to iCloud Passwords Extension:
 [Link](https://chromewebstore.google.com/detail/icloud-passwords/pejdijmoenmkgeppbflobdenhhabjlaj)</ins>
