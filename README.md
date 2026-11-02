@@ -46,6 +46,13 @@ https://github.com/user-attachments/assets/8cb45571-d164-4e28-aa6e-64d27705d6d2
 - or **Brave Browser**: `brew install --cask brave-browser`
 - or **Microsoft Edge**: `brew install --cask microsoft-edge`
 
+For an experimental Chromium-based browser not listed above, pass its executable path to `apw start --browser-path` (for
+example, `/Applications/Example.app/Contents/MacOS/Example`). The browser must be installed in `/Applications`, support
+Chrome DevTools Protocol and unpacked Chrome extensions, and be authorized by Apple to launch its Passwords helper. APW
+still requires Apple's iCloud Passwords extension; install it in one of the supported browsers above so APW can prepare
+its managed copy. This does not bypass Apple's browser restrictions and may not work with unlisted browsers. APW uses a
+disposable managed profile and recreates it each time it starts.
+
 <ins>Link to iCloud Passwords Extension:
 [Link](https://chromewebstore.google.com/detail/icloud-passwords/pejdijmoenmkgeppbflobdenhhabjlaj)</ins>
 

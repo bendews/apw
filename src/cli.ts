@@ -1,7 +1,7 @@
 import { Command, Input, Secret, Select } from "./deps.ts";
 import { daemon } from "./daemon.ts";
 import { ApplePasswordManager } from "./client.ts";
-import { BROWSERS, installedBrowsers } from "./browser.ts";
+import { BROWSERS, customBrowser, installedBrowsers } from "./browser.ts";
 import { readConfig, writeConfig } from "./config.ts";
 import { APWError, Status, VERSION } from "./const.ts";
 import type { PasswordEntry, Payload } from "./types.ts";
@@ -133,10 +133,21 @@ const pw = new Command()
 const start = new Command()
   .description("Start APW and choose a managed browser.")
   .option("-b, --browser <browser:string>", "Browser to use (auto, chromium, chrome, brave, or edge).")
-  .action(async (options: { browser?: string }) => {
+  .option("--browser-path <path:string>", "Use a compatible Chromium browser executable inside /Applications.")
+  .action(async (options: { browser?: string; browserPath?: string }) => {
+    if (options.browserPath) {
+      if (options.browser) {
+        throw new APWError(Status.INVALID_PARAM, "Use either --browser or --browser-path, not both.");
+      }
+      await daemon(customBrowser(options.browserPath));
+      return;
+    }
+
     const browsers = installedBrowsers();
     if (!browsers.length) {
-      const hints = BROWSERS.map(({ name, brewCask }) => `  brew install --cask ${brewCask}  # ${name}`).join("\n");
+      const hints = BROWSERS.flatMap(({ name, brewCask }) =>
+        brewCask ? [`  brew install --cask ${brewCask}  # ${name}`] : []
+      ).join("\n");
       throw new APWError(Status.GENERIC_ERROR, `No supported browser found. Install one:\n${hints}`);
     }
     const saved = readConfig().browser ?? "auto";
