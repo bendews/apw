@@ -6,6 +6,7 @@ const HOME = Deno.env.get("HOME")!;
 const APPLE_MANIFEST = "/Library/Google/Chrome/NativeMessagingHosts/com.apple.passwordmanager.json";
 const EXTENSION_ID = "pejdijmoenmkgeppbflobdenhhabjlaj";
 const BACKGROUND = "background.js";
+const WEB_STORE_URL = "https://clients2.google.com/service/update2/crx";
 
 export interface Browser {
   id: string;
@@ -47,7 +48,8 @@ function directories(path: string): string[] {
   try {
     return [...Deno.readDirSync(path)].filter((entry) => entry.isDirectory).map((entry) => entry.name);
   } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return [];
+    // macOS can block reading another browser's data folder; treat it like a missing one.
+    if (error instanceof Deno.errors.NotFound || error instanceof Deno.errors.PermissionDenied) return [];
     throw error;
   }
 }
@@ -85,24 +87,75 @@ function extensionSource(): string | undefined {
   }
 }
 
-function buildExtension(config: { port: number; token: string }): void {
+function browserVersion(browser: Browser): string {
+  const { stdout } = new Deno.Command(browser.bin, { args: ["--version"], stdout: "piped", stderr: "null" })
+    .outputSync();
+  const version = new TextDecoder().decode(stdout).match(/\d+\.\d+/)?.[0];
+  if (!version) throw new APWError(Status.GENERIC_ERROR, `Could not read the ${browser.name} version.`);
+  return version;
+}
+
+async function extensionId(key: string | undefined): Promise<string | undefined> {
+  if (!key) return;
+  const der = Uint8Array.from(atob(key), (char) => char.charCodeAt(0));
+  const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", der));
+  return [...hash.subarray(0, 16)].map((byte) => String.fromCharCode(97 + (byte >> 4), 97 + (byte & 15))).join("");
+}
+
+async function downloadExtension(browser: Browser, target: string): Promise<void> {
+  const fail = (reason: string) =>
+    new APWError(Status.GENERIC_ERROR, `Could not download the Apple Passwords extension: ${reason}`);
+  const query = new URLSearchParams({
+    response: "redirect",
+    prodversion: browserVersion(browser),
+    acceptformat: "crx3",
+    x: `id=${EXTENSION_ID}&uc`,
+  });
+  const response = await fetch(`${WEB_STORE_URL}?${query}`);
+  if (!response.ok) throw fail(`HTTP ${response.status}`);
+
+  const crx = new Uint8Array(await response.arrayBuffer());
+  const header = new DataView(crx.buffer, crx.byteOffset, crx.byteLength);
+  if (
+    crx.byteLength < 12 || new TextDecoder().decode(crx.subarray(0, 4)) !== "Cr24" || header.getUint32(4, true) !== 3
+  ) {
+    throw fail("not a CRX3 package");
+  }
+
+  const temp = Deno.makeTempDirSync({ prefix: "apw-extension-" });
+  try {
+    Deno.writeFileSync(`${temp}/extension.zip`, crx.subarray(12 + header.getUint32(8, true)));
+    const unzip = new Deno.Command("/usr/bin/unzip", {
+      args: ["-q", `${temp}/extension.zip`, "-d", target],
+      stdout: "null",
+      stderr: "piped",
+    }).outputSync();
+    if (!unzip.success) throw fail(new TextDecoder().decode(unzip.stderr).trim());
+  } finally {
+    remove(temp);
+  }
+
+  const manifest = JSON.parse(Deno.readTextFileSync(`${target}/manifest.json`));
+  if (await extensionId(manifest.key) !== EXTENSION_ID) throw fail("its key does not match the extension ID");
+}
+
+async function buildExtension(browser: Browser, config: { port: number; token: string }): Promise<void> {
   const background = `${EXTENSION_PATH}/${BACKGROUND}`;
   const orig = `${background}.orig`;
 
   if (!exists(orig)) {
     const source = extensionSource();
-    if (!source) {
-      throw new APWError(
-        Status.GENERIC_ERROR,
-        "Apple Passwords extension not found. Install it from the Chrome Web Store.",
-      );
-    }
     remove(EXTENSION_PATH);
     Deno.mkdirSync(EXTENSION_PATH, { recursive: true });
-    copyDirectory(source, EXTENSION_PATH);
+    if (source) {
+      copyDirectory(source, EXTENSION_PATH);
+    } else {
+      await downloadExtension(browser, EXTENSION_PATH);
+    }
     remove(`${EXTENSION_PATH}/_metadata`);
     Deno.copyFileSync(background, orig);
-    writeConfig({ extensionVersion: source.split("/").at(-1)!, extensionPath: source });
+    const { version } = JSON.parse(Deno.readTextFileSync(`${EXTENSION_PATH}/manifest.json`));
+    writeConfig({ extensionVersion: version, extensionPath: source ?? WEB_STORE_URL });
   }
 
   Deno.writeTextFileSync(
@@ -155,7 +208,7 @@ export async function launchBrowser(
   browser: Browser,
   config: { port: number; token: string },
 ): Promise<Deno.ChildProcess> {
-  buildExtension(config);
+  await buildExtension(browser, config);
   remove(browser.profile);
   const hosts = `${browser.profile}/NativeMessagingHosts`;
   Deno.mkdirSync(hosts, { recursive: true });
