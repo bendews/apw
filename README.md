@@ -82,6 +82,15 @@ A native macOS popup with a PIN will appear. Enter it when prompted to complete 
 
 APW is now running and ready to use.
 
+### Staying paired
+
+The pairing made by `apw auth` lives only in the browser extension's memory. Restarting the daemon, the browser it
+launches, or the Mac drops it, and the next lookup answers `"error":"unpaired"`. macOS shows the pairing PIN only on an
+unlocked screen, so a Mac left at the lock screen after a reboot cannot be re-paired until someone unlocks it.
+
+`apw status` reports whether the extension is connected and paired, and exits `9` when it is not, so a watchdog can
+check it cheaply. The daemon log timestamps connects, disconnects and pairing changes.
+
 ## Integrations
 
 The following integrations provide quick access to passwords and OTP tokens:
