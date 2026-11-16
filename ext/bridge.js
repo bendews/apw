@@ -6,6 +6,9 @@
   const fail = (id, status, error) => send({ id, status, error: String(error) });
 
   function request(message) {
+    if (message.cmd === 1000) {
+      return send({ id: message.id, data: { STATUS: OK, EXTENSION: true, PAIRED: g_theState === "SessionKeySet" } });
+    }
     if (message.cmd === 2) {
       message.pin == null ? ChallengePIN() : PINSet(message.pin);
       return send({ id: message.id, status: OK });

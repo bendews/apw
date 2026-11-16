@@ -1,8 +1,12 @@
-import { APWError, DATA_PATH, SOCKET_PATH, Status } from "./const.ts";
+import { APWError, Command, DATA_PATH, SOCKET_PATH, Status } from "./const.ts";
 import { type Browser, launchBrowser } from "./browser.ts";
 import type { APWResponse, Message } from "./types.ts";
 
 const REQUEST_TIMEOUT_MS = 30_000;
+const PAIRING_CHECK_MS = 60_000;
+
+// Timestamped so a lost pairing can be matched to the restart or disconnect that caused it.
+const log = (message: string) => console.info(`${new Date().toISOString()} ${message}`);
 
 type ExtensionMessage = APWResponse | { token: string };
 
@@ -19,6 +23,10 @@ class ExtensionSession {
   private chain: Promise<unknown> = Promise.resolve();
 
   constructor(private token: string) {}
+
+  get connected(): boolean {
+    return this.ws !== null;
+  }
 
   private rejectPending(error: Error): void {
     if (!this.pending) return;
@@ -47,7 +55,7 @@ class ExtensionSession {
           return;
         }
         this.ws = ws;
-        console.info("[apw] extension connected");
+        log("[apw] extension connected");
         return;
       }
 
@@ -62,7 +70,9 @@ class ExtensionSession {
     ws.addEventListener("close", () => {
       this.ws = null;
       this.rejectPending(new Error("Extension disconnected"));
-      console.info("[apw] extension disconnected");
+      log(
+        "[apw] extension disconnected (pairing is held in the extension's memory and must be redone with `apw auth`)",
+      );
     });
   }
 
@@ -87,7 +97,7 @@ class ExtensionSession {
 
 async function handleCliConnection(
   conn: Deno.Conn,
-  session: { request(message: Message): Promise<APWResponse> },
+  session: { connected: boolean; request(message: Message): Promise<APWResponse> },
 ): Promise<void> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
@@ -122,7 +132,11 @@ async function handleCliConnection(
       if (typeof message.cmd !== "number") {
         throw new APWError(Status.INVALID_PARAM);
       }
-      await send(await session.request(message));
+      if (message.cmd === Command.APW_STATUS && !session.connected) {
+        await send({ id: "", data: { STATUS: Status.SUCCESS, EXTENSION: false, PAIRED: false } });
+      } else {
+        await send(await session.request(message));
+      }
     } catch (error) {
       const err = error as Error;
       await send({
@@ -153,7 +167,7 @@ export async function daemon(browser: Browser): Promise<void> {
   });
 
   const child = await launchBrowser(browser, { port: (wsServer.addr as Deno.NetAddr).port, token });
-  console.info(`[apw] launched headless ${browser.name}; extension loaded.`);
+  log(`[apw] launched headless ${browser.name}; extension loaded.`);
   const shutdown = async () => {
     try {
       child.kill("SIGTERM");
@@ -169,8 +183,24 @@ export async function daemon(browser: Browser): Promise<void> {
     if (!(error instanceof Deno.errors.NotFound)) throw error;
   }
   const unixListener = Deno.listen({ transport: "unix", path: SOCKET_PATH });
-  console.info(`[apw] Unix socket at ${SOCKET_PATH}`);
+  log(`[apw] Unix socket at ${SOCKET_PATH}`);
   await Deno.chmod(SOCKET_PATH, 0o600);
+
+  // Pairing lives only in the extension's memory: a browser restart, a reboot or the extension's
+  // service worker being recycled drops it silently, and the next credential lookup just answers
+  // "unpaired". Watch it so the log says when it happened.
+  let paired: boolean | null = null;
+  setInterval(async () => {
+    let now = false;
+    try {
+      if (session.connected) {
+        const response = await session.request({ cmd: Command.APW_STATUS });
+        now = "data" in response && response.data.PAIRED === true;
+      }
+    } catch { /* treated as unpaired */ }
+    if (paired !== null && now !== paired) log(now ? "[apw] paired" : "[apw] pairing lost; run `apw auth`");
+    paired = now;
+  }, PAIRING_CHECK_MS);
 
   for await (const conn of unixListener) {
     handleCliConnection(conn, session).catch(console.error);

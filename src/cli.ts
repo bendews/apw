@@ -186,6 +186,14 @@ const auth = new Command()
     printSuccess();
   });
 
+const status = new Command()
+  .description("Show whether the daemon's extension is connected and paired. Exits 9 when not paired.")
+  .action(async () => {
+    const { extension, paired } = await client.status();
+    console.log(JSON.stringify({ status: paired ? Status.SUCCESS : Status.INVALID_SESSION, extension, paired }));
+    if (!paired) Deno.exit(Status.INVALID_SESSION);
+  });
+
 try {
   await new Command()
     .name("apw")
@@ -195,6 +203,7 @@ try {
     .command("pw", pw)
     .command("otp", otp)
     .command("start", start)
+    .command("status", status)
     .parse(Deno.args);
 } catch (error: unknown) {
   let status = Status.GENERIC_ERROR;

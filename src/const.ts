@@ -31,6 +31,8 @@ export enum Command {
   GET_ONE_TIME_CODES = 16,
   DID_FILL_ONE_TIME_CODE = 17,
   OPEN_URL_IN_SAFARI = 1984,
+  // apw-internal, never forwarded to Apple's helper: reports extension connection and pairing state.
+  APW_STATUS = 1000,
 }
 
 export enum SecretSessionVersion {

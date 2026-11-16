@@ -142,6 +142,12 @@ export class ApplePasswordManager {
     }
   }
 
+  async status(): Promise<{ extension: boolean; paired: boolean }> {
+    const response = await this.sendMessage({ cmd: Command.APW_STATUS });
+    if (!("data" in response)) throw new APWError(Status.SERVER_ERROR);
+    return { extension: response.data.EXTENSION === true, paired: response.data.PAIRED === true };
+  }
+
   async requestChallenge(): Promise<void> {
     await this.sendMessage({ cmd: Command.HANDSHAKE });
   }
